@@ -1,0 +1,34 @@
+import React, { PropsWithChildren } from 'react';
+import { ScrollView, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, layout } from '@/theme';
+
+type Props = PropsWithChildren<{
+  scroll?: boolean;
+  contentStyle?: StyleProp<ViewStyle>;
+}>;
+
+export function ScreenShell({ children, scroll = true, contentStyle }: Props) {
+  return (
+    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      {scroll ? (
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={[styles.content, contentStyle]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {children}
+        </ScrollView>
+      ) : (
+        <View style={[styles.content, styles.flex, contentStyle]}>{children}</View>
+      )}
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.black },
+  flex: { flex: 1 },
+  content: { padding: layout.screenPadding, paddingBottom: 32 },
+});

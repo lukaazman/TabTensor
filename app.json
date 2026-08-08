@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "TabTensor",
+    "slug": "tabtensor",
+    "version": "0.1.0",
+    "orientation": "default",
+    "userInterfaceStyle": "dark",
+    "scheme": "tabtensor",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tabtensor.app"
+    },
+    "android": {
+      "package": "com.tabtensor.app"
+    },
+    "plugins": [
+      [
+        "react-native-audio-api",
+        {
+          "iosMicrophonePermission": "TabTensor uses the microphone only to detect guitar pitch.",
+          "androidPermissions": [
+            "android.permission.RECORD_AUDIO",
+            "android.permission.MODIFY_AUDIO_SETTINGS"
+          ]
+        }
+      ]
+    ],
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
