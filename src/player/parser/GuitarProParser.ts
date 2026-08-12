@@ -1,21 +1,14 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { parseTabFile } from 'guitarpro-parser';
 import { DOMParser as LinkedomDOMParser } from 'linkedom';
-import { GuitarProSong, PlaybackBeat, PlaybackMeasure, PlaybackNote, PlaybackTechnique, PlaybackTrack } from '@/types';
+import { GuitarProSong, PlaybackBeat, PlaybackMeasure, PlaybackNote, PlaybackTechnique, PlaybackTrack, PlayerCapabilities } from '@/types';
 import { midiFromNoteName } from '@/tuner/tunings';
+import { getExtension, isSupportedGuitarProFile } from './FileFormats';
+import { readFileBytes } from './binary';
 
-const SUPPORTED_EXTENSIONS = ['gp3', 'gp4', 'gp5', 'gpx', 'gp', 'gp7', 'gp8'];
+export { getExtension, isSupportedGuitarProFile } from './FileFormats';
 
 type UnknownRecord = Record<string, unknown>;
-
-export function isSupportedGuitarProFile(name: string): boolean {
-  const extension = getExtension(name);
-  return SUPPORTED_EXTENSIONS.includes(extension);
-}
-
-export function getExtension(name: string): string {
-  return name.split('.').pop()?.toLowerCase() ?? '';
-}
 
 export async function parseGuitarProFile(uri: string, sourceName: string): Promise<GuitarProSong> {
   if (!isSupportedGuitarProFile(sourceName)) {
@@ -24,8 +17,7 @@ export async function parseGuitarProFile(uri: string, sourceName: string): Promi
 
   const info = await FileSystem.getInfoAsync(uri);
   if (!info.exists) throw new Error('This file is no longer available on the device.');
-  const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-  const bytes = base64ToBytes(base64);
+  const bytes = await readFileBytes(uri);
 
   try {
     // guitarpro-parser falls back to a dynamic Node require for GP7 files.
@@ -54,6 +46,16 @@ function normalizeSong(raw: UnknownRecord, sourceUri: string, sourceName: string
   const title = readString(raw.title, readString(raw.name, stripExtension(sourceName))) || stripExtension(sourceName);
   const artist = readString(raw.artist, readString(raw.artistName, ''));
   const timeSignature = readTimeSignature(raw.timeSignature) ?? measures[0]?.timeSignature;
+  const capabilities: PlayerCapabilities = {
+    tablature: true,
+    staffNotation: true,
+    lyrics: false,
+    dynamics: false,
+    tempoMap: false,
+    velocity: true,
+    instruments: tracks.some((track) => Boolean(track.instrument)),
+    percussion: tracks.some((track) => Boolean(track.isPercussion)),
+  };
 
   return {
     id: `${sourceUri}:${sourceName}`,
@@ -65,6 +67,8 @@ function normalizeSong(raw: UnknownRecord, sourceUri: string, sourceName: string
     sourceUri,
     sourceName,
     format: getExtension(sourceName).toUpperCase(),
+    formatKind: 'guitar-pro',
+    capabilities,
     tracks,
     measures,
   };
@@ -142,6 +146,7 @@ function normalizeTrack(rawTrackValue: unknown, trackIndex: number, tempo: numbe
     id: String(rawTrack.id ?? `track-${trackIndex}`),
     name: readString(rawTrack.name, `Track ${trackIndex + 1}`),
     instrument: readString(rawTrack.instrument, readString(rawTrack.program, '')) || undefined,
+    tablature: true,
     volume: 1,
     muted: false,
     notes,
@@ -153,14 +158,24 @@ function buildMeasures(tracks: PlaybackTrack[], rawSong: UnknownRecord): Playbac
     ? readArray(rawSong.bars ?? rawSong.measures)
     : readArray(asRecord(readArray(rawSong.tracks)[0]).bars);
   if (rawBars.length) {
+    const notesByMeasure = new Map<number, PlaybackNote[]>();
+    tracks.forEach((track) => {
+      track.notes.forEach((note) => {
+        const measureNotes = notesByMeasure.get(note.measureIndex) ?? [];
+        measureNotes.push(note);
+        notesByMeasure.set(note.measureIndex, measureNotes);
+      });
+    });
+
     let cursor = 0;
     return rawBars.map((barValue, index) => {
       const bar = asRecord(barValue);
       const timeSignature = readTimeSignature(bar.timeSignature);
       const rawBeats = readArray(bar.beats);
-      const trackNotes = tracks.flatMap((track) => track.notes.filter((note) => note.measureIndex === index));
+      const trackNotes = [...(notesByMeasure.get(index) ?? [])].sort((a, b) => a.start - b.start);
       const beats: PlaybackBeat[] = [];
       let beatCursor = cursor;
+      let noteCursor = 0;
 
       rawBeats.forEach((beatValue, beatIndex) => {
         const beat = asRecord(beatValue);
@@ -169,7 +184,10 @@ function buildMeasures(tracks: PlaybackTrack[], rawSong: UnknownRecord): Playbac
           beat.dotted,
           beat.tuplet,
         ) * 60 / Math.max(readNumber(beat.tempo, readNumber(rawSong.tempo, 120)), 1);
-        const notes = trackNotes.filter((note) => note.start >= beatCursor - 0.005 && note.start < beatCursor + beatDuration - 0.005);
+        while (noteCursor < trackNotes.length && trackNotes[noteCursor].start < beatCursor - 0.005) noteCursor += 1;
+        const firstNote = noteCursor;
+        while (noteCursor < trackNotes.length && trackNotes[noteCursor].start < beatCursor + beatDuration - 0.005) noteCursor += 1;
+        const notes = trackNotes.slice(firstNote, noteCursor);
         beats.push({
           index: beatIndex,
           start: notes[0]?.start ?? beatCursor,
@@ -310,26 +328,6 @@ function readTimeSignature(value: unknown): string | undefined {
     if (numerator && denominator) return `${numerator}/${denominator}`;
   }
   return undefined;
-}
-
-function base64ToBytes(value: string): Uint8Array {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-  const clean = value.replace(/[^A-Za-z0-9+/=]/g, '');
-  const output = new Uint8Array(Math.floor((clean.length * 3) / 4) - (clean.endsWith('==') ? 2 : clean.endsWith('=') ? 1 : 0));
-  let buffer = 0;
-  let bits = 0;
-  let offset = 0;
-  for (const character of clean) {
-    if (character === '=') break;
-    buffer = (buffer << 6) | alphabet.indexOf(character);
-    bits += 6;
-    if (bits >= 8) {
-      bits -= 8;
-      output[offset] = (buffer >> bits) & 0xff;
-      offset += 1;
-    }
-  }
-  return output;
 }
 
 function getExtensionlessName(name: string): string {

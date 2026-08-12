@@ -2,6 +2,7 @@ import { TunerPreferences } from '@/types';
 import { readJson, writeJson } from './localStorage';
 
 const DEFAULT_PREFERENCES: TunerPreferences = {
+  instrumentId: 'acoustic-guitar',
   tuningId: 'standard',
   customTunings: [],
   autoMode: true,
@@ -14,6 +15,7 @@ export async function loadTunerPreferences(): Promise<TunerPreferences> {
   return {
     ...DEFAULT_PREFERENCES,
     ...saved,
+    instrumentId: saved.instrumentId ?? DEFAULT_PREFERENCES.instrumentId,
     customTunings: saved.customTunings ?? [],
   };
 }

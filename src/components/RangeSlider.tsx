@@ -28,7 +28,22 @@ export function RangeSlider({ value, min = 0, max = 1, onChange, label, valueLab
   return (
     <View style={styles.wrap}>
       {label || valueLabel ? <View style={styles.meta}><Text style={type.caption}>{label}</Text><Text style={type.mono}>{valueLabel}</Text></View> : null}
-      <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)} style={styles.touchArea} {...responder.panHandlers}>
+      <View
+        accessible
+        accessibilityRole="adjustable"
+        accessibilityLabel={label ?? 'Adjust value'}
+        accessibilityValue={{ min, max, now: value, text: valueLabel ?? String(value) }}
+        accessibilityHint="Swipe up or down to adjust"
+        accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+        onAccessibilityAction={(event) => {
+          const step = (max - min || 1) / 20;
+          if (event.nativeEvent.actionName === 'increment') onChange(Math.min(max, Number((value + step).toFixed(3))));
+          if (event.nativeEvent.actionName === 'decrement') onChange(Math.max(min, Number((value - step).toFixed(3))));
+        }}
+        onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+        style={styles.touchArea}
+        {...responder.panHandlers}
+      >
         <View style={styles.track}>
           <View style={[styles.fill, { width: `${fraction * 100}%` }]} />
           <View style={[styles.thumb, { left: `${fraction * 100}%` }]} />
@@ -39,10 +54,10 @@ export function RangeSlider({ value, min = 0, max = 1, onChange, label, valueLab
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 6 },
+  wrap: { gap: 7 },
   meta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  touchArea: { height: 28, justifyContent: 'center' },
-  track: { height: 4, borderRadius: 2, backgroundColor: colors.border, position: 'relative' },
-  fill: { height: 4, borderRadius: 2, backgroundColor: colors.red },
-  thumb: { position: 'absolute', top: -6, width: 16, height: 16, marginLeft: -8, borderRadius: 8, backgroundColor: colors.white, borderWidth: 2, borderColor: colors.red },
+  touchArea: { height: 44, justifyContent: 'center' },
+  track: { height: 5, borderRadius: 3, backgroundColor: colors.rule, position: 'relative' },
+  fill: { height: 5, borderRadius: 3, backgroundColor: colors.accent },
+  thumb: { position: 'absolute', top: -7, width: 19, height: 19, marginLeft: -9.5, borderRadius: 10, backgroundColor: colors.ink, borderWidth: 3, borderColor: colors.accent },
 });

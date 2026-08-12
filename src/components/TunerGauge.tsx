@@ -19,14 +19,14 @@ export function TunerGauge({ cents, active }: { cents?: number; active: boolean 
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 8 },
+  wrap: { gap: 9 },
   labels: { flexDirection: 'row', justifyContent: 'space-between' },
-  scale: { height: 34, backgroundColor: colors.panelRaised, borderWidth: 1, borderColor: colors.border, justifyContent: 'center', position: 'relative' },
-  centerLine: { position: 'absolute', top: 0, bottom: 0, left: '50%', width: 1, backgroundColor: colors.white, opacity: 0.55 },
-  needle: { position: 'absolute', top: 3, bottom: 3, width: 2, marginLeft: -1, backgroundColor: colors.textMuted },
-  needleActive: { backgroundColor: colors.redBright, width: 3, marginLeft: -1.5 },
+  scale: { height: 40, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.rule, borderRadius: 8, justifyContent: 'center', position: 'relative' },
+  centerLine: { position: 'absolute', top: 0, bottom: 0, left: '50%', width: 1, backgroundColor: colors.ink, opacity: 0.65 },
+  needle: { position: 'absolute', top: 4, bottom: 4, width: 2, marginLeft: -1, backgroundColor: colors.neutral },
+  needleActive: { backgroundColor: colors.accentBright, width: 3, marginLeft: -1.5 },
   tickRow: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' },
-  tick: { height: 7, width: 1, backgroundColor: colors.borderStrong },
-  centerTick: { height: 14, backgroundColor: colors.white },
+  tick: { height: 8, width: 1, backgroundColor: colors.ruleStrong },
+  centerTick: { height: 16, backgroundColor: colors.ink },
   help: { textAlign: 'center' },
 });

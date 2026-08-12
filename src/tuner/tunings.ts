@@ -1,32 +1,205 @@
-import { TuningDefinition, TuningId } from '@/types';
+import { InstrumentDefinition, InstrumentId, TuningDefinition, TuningId } from '@/types';
 
-export const PRESET_TUNINGS: TuningDefinition[] = [
-  { id: 'standard', name: 'Standard E', shortName: 'E A D G B E', strings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'] },
-  { id: 'half-step-down', name: 'Half Step Down', shortName: 'Eb Ab Db Gb Bb Eb', strings: ['Eb2', 'Ab2', 'Db3', 'Gb3', 'Bb3', 'Eb4'] },
-  { id: 'full-step-down', name: 'Full Step Down', shortName: 'D G C F A D', strings: ['D2', 'G2', 'C3', 'F3', 'A3', 'D4'] },
-  { id: 'drop-d', name: 'Drop D', shortName: 'D A D G B E', strings: ['D2', 'A2', 'D3', 'G3', 'B3', 'E4'] },
-  { id: 'drop-c', name: 'Drop C', shortName: 'C G C F A D', strings: ['C2', 'G2', 'C3', 'F3', 'A3', 'D4'] },
-  { id: 'd-standard', name: 'D Standard', shortName: 'D G C F A D', strings: ['D2', 'G2', 'C3', 'F3', 'A3', 'D4'] },
-  { id: 'open-g', name: 'Open G', shortName: 'D G D G B D', strings: ['D2', 'G2', 'D3', 'G3', 'B3', 'D4'] },
-  { id: 'open-d', name: 'Open D', shortName: 'D A D F# A D', strings: ['D2', 'A2', 'D3', 'F#3', 'A3', 'D4'] },
-  { id: 'dadgad', name: 'DADGAD', shortName: 'D A D G A D', strings: ['D2', 'A2', 'D3', 'G3', 'A3', 'D4'] },
+export const INSTRUMENTS: InstrumentDefinition[] = [
+  { id: 'acoustic-guitar', name: 'Acoustic guitar', shortName: 'Acoustic', family: 'Guitar', bodyStyle: 'guitar', stringCount: 6 },
+  { id: 'electric-guitar', name: 'Electric guitar', shortName: 'Electric', family: 'Guitar', bodyStyle: 'electric', stringCount: 6 },
+  { id: 'classical-guitar', name: 'Classical guitar', shortName: 'Classical', family: 'Guitar', bodyStyle: 'guitar', stringCount: 6 },
+  { id: 'guitar-7', name: '7-string guitar', shortName: '7-string', family: 'Guitar', bodyStyle: 'guitar', stringCount: 7 },
+  { id: 'guitar-8', name: '8-string guitar', shortName: '8-string', family: 'Guitar', bodyStyle: 'guitar', stringCount: 8 },
+  { id: 'ukulele', name: 'Ukulele', shortName: 'Ukulele', family: 'Ukulele', bodyStyle: 'ukulele', stringCount: 4 },
+  { id: 'bass-4', name: '4-string bass', shortName: 'Bass 4', family: 'Bass', bodyStyle: 'bass', stringCount: 4 },
+  { id: 'bass-5', name: '5-string bass', shortName: 'Bass 5', family: 'Bass', bodyStyle: 'bass', stringCount: 5 },
+  { id: 'mandolin', name: 'Mandolin', shortName: 'Mandolin', family: 'Other', bodyStyle: 'mandolin', stringCount: 4 },
+  { id: 'violin', name: 'Violin', shortName: 'Violin', family: 'Other', bodyStyle: 'violin', stringCount: 4 },
+  { id: 'banjo', name: '5-string banjo', shortName: 'Banjo', family: 'Other', bodyStyle: 'banjo', stringCount: 5 },
 ];
 
-export function findTuning(id: TuningId, customTunings: TuningDefinition[]): TuningDefinition {
+export const PRESET_TUNINGS: TuningDefinition[] = [
+  {
+    id: 'standard',
+    name: 'Standard E',
+    shortName: 'E A D G B E',
+    strings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'],
+    instrumentIds: ['acoustic-guitar', 'electric-guitar', 'classical-guitar'],
+  },
+  {
+    id: 'half-step-down',
+    name: 'Half step down',
+    shortName: 'Eb Ab Db Gb Bb Eb',
+    strings: ['Eb2', 'Ab2', 'Db3', 'Gb3', 'Bb3', 'Eb4'],
+    instrumentIds: ['acoustic-guitar', 'electric-guitar', 'classical-guitar'],
+  },
+  {
+    id: 'full-step-down',
+    name: 'Full step down',
+    shortName: 'D G C F A D',
+    strings: ['D2', 'G2', 'C3', 'F3', 'A3', 'D4'],
+    instrumentIds: ['acoustic-guitar', 'electric-guitar', 'classical-guitar'],
+  },
+  {
+    id: 'drop-d',
+    name: 'Drop D',
+    shortName: 'D A D G B E',
+    strings: ['D2', 'A2', 'D3', 'G3', 'B3', 'E4'],
+    instrumentIds: ['acoustic-guitar', 'electric-guitar', 'classical-guitar'],
+  },
+  {
+    id: 'drop-c',
+    name: 'Drop C',
+    shortName: 'C G C F A D',
+    strings: ['C2', 'G2', 'C3', 'F3', 'A3', 'D4'],
+    instrumentIds: ['acoustic-guitar', 'electric-guitar', 'classical-guitar'],
+  },
+  {
+    id: 'd-standard',
+    name: 'D standard',
+    shortName: 'D G C F A D',
+    strings: ['D2', 'G2', 'C3', 'F3', 'A3', 'D4'],
+    instrumentIds: ['acoustic-guitar', 'electric-guitar', 'classical-guitar'],
+  },
+  {
+    id: 'open-g',
+    name: 'Open G',
+    shortName: 'D G D G B D',
+    strings: ['D2', 'G2', 'D3', 'G3', 'B3', 'D4'],
+    instrumentIds: ['acoustic-guitar', 'electric-guitar'],
+  },
+  {
+    id: 'open-d',
+    name: 'Open D',
+    shortName: 'D A D F# A D',
+    strings: ['D2', 'A2', 'D3', 'F#3', 'A3', 'D4'],
+    instrumentIds: ['acoustic-guitar', 'electric-guitar'],
+  },
+  {
+    id: 'dadgad',
+    name: 'DADGAD',
+    shortName: 'D A D G A D',
+    strings: ['D2', 'A2', 'D3', 'G3', 'A3', 'D4'],
+    instrumentIds: ['acoustic-guitar', 'electric-guitar', 'classical-guitar'],
+  },
+  {
+    id: 'guitar-7-standard',
+    name: 'Standard B',
+    shortName: 'B E A D G B E',
+    strings: ['B1', 'E2', 'A2', 'D3', 'G3', 'B3', 'E4'],
+    instrumentIds: ['guitar-7'],
+  },
+  {
+    id: 'guitar-7-drop-a',
+    name: 'Drop A',
+    shortName: 'A E A D G B E',
+    strings: ['A1', 'E2', 'A2', 'D3', 'G3', 'B3', 'E4'],
+    instrumentIds: ['guitar-7'],
+  },
+  {
+    id: 'guitar-8-standard',
+    name: 'Standard F#',
+    shortName: 'F# B E A D G B E',
+    strings: ['F#1', 'B1', 'E2', 'A2', 'D3', 'G3', 'B3', 'E4'],
+    instrumentIds: ['guitar-8'],
+  },
+  {
+    id: 'ukulele-standard',
+    name: 'Standard re-entrant',
+    shortName: 'G4 C4 E4 A4',
+    strings: ['G4', 'C4', 'E4', 'A4'],
+    instrumentIds: ['ukulele'],
+  },
+  {
+    id: 'ukulele-low-g',
+    name: 'Low G',
+    shortName: 'G3 C4 E4 A4',
+    strings: ['G3', 'C4', 'E4', 'A4'],
+    instrumentIds: ['ukulele'],
+  },
+  {
+    id: 'bass-4-standard',
+    name: 'Standard bass',
+    shortName: 'E A D G',
+    strings: ['E1', 'A1', 'D2', 'G2'],
+    instrumentIds: ['bass-4'],
+  },
+  {
+    id: 'bass-4-drop-d',
+    name: 'Drop D',
+    shortName: 'D A D G',
+    strings: ['D1', 'A1', 'D2', 'G2'],
+    instrumentIds: ['bass-4'],
+  },
+  {
+    id: 'bass-5-standard',
+    name: 'Standard bass',
+    shortName: 'B E A D G',
+    strings: ['B0', 'E1', 'A1', 'D2', 'G2'],
+    instrumentIds: ['bass-5'],
+  },
+  {
+    id: 'bass-5-high-c',
+    name: 'High C',
+    shortName: 'E A D G C',
+    strings: ['E1', 'A1', 'D2', 'G2', 'C3'],
+    instrumentIds: ['bass-5'],
+  },
+  {
+    id: 'mandolin-standard',
+    name: 'Standard mandolin',
+    shortName: 'G D A E',
+    strings: ['G3', 'D4', 'A4', 'E5'],
+    instrumentIds: ['mandolin'],
+  },
+  {
+    id: 'violin-standard',
+    name: 'Standard violin',
+    shortName: 'G D A E',
+    strings: ['G3', 'D4', 'A4', 'E5'],
+    instrumentIds: ['violin'],
+  },
+  {
+    id: 'banjo-open-g',
+    name: 'Open G',
+    shortName: 'G D G B D',
+    strings: ['G4', 'D3', 'G3', 'B3', 'D4'],
+    instrumentIds: ['banjo'],
+  },
+];
+
+export function instrumentForId(id: InstrumentId): InstrumentDefinition {
+  return INSTRUMENTS.find((instrument) => instrument.id === id) ?? INSTRUMENTS[0];
+}
+
+export function tuningsForInstrument(instrumentId: InstrumentId, customTunings: TuningDefinition[] = []): TuningDefinition[] {
+  const instrument = instrumentForId(instrumentId);
+  const presets = PRESET_TUNINGS.filter((tuning) => tuning.instrumentIds?.includes(instrumentId));
+  const customs = customTunings.filter((tuning) => {
+    if (tuning.instrumentIds?.includes(instrumentId)) return true;
+    return !tuning.instrumentIds && tuning.strings.length === instrument.stringCount;
+  });
+  return [...presets, ...customs];
+}
+
+export function defaultTuningForInstrument(instrumentId: InstrumentId): TuningDefinition {
+  return tuningsForInstrument(instrumentId)[0] ?? PRESET_TUNINGS[0];
+}
+
+export function findTuning(id: TuningId, customTunings: TuningDefinition[], instrumentId: InstrumentId = 'acoustic-guitar'): TuningDefinition {
+  const instrument = instrumentForId(instrumentId);
   if (id === 'custom') {
-    return customTunings[0] ?? {
+    const custom = customTunings.find((tuning) => tuning.id === 'custom' && (tuning.instrumentIds?.includes(instrumentId) || (!tuning.instrumentIds && tuning.strings.length === instrument.stringCount)));
+    return custom ?? {
       id: 'custom',
       name: 'Custom',
-      shortName: 'E A D G B E',
-      strings: ['E2', 'A2', 'D3', 'G3', 'B3', 'E4'],
+      shortName: defaultTuningForInstrument(instrumentId).shortName,
+      strings: [...defaultTuningForInstrument(instrumentId).strings],
+      instrumentIds: [instrumentId],
       isCustom: true,
     };
   }
-  return PRESET_TUNINGS.find((tuning) => tuning.id === id) ?? PRESET_TUNINGS[0];
+  return tuningsForInstrument(instrumentId, customTunings).find((tuning) => tuning.id === id) ?? defaultTuningForInstrument(instrumentId);
 }
 
-export function allTunings(customTunings: TuningDefinition[]): TuningDefinition[] {
-  return [...PRESET_TUNINGS, ...customTunings];
+export function allTunings(instrumentId: InstrumentId, customTunings: TuningDefinition[]): TuningDefinition[] {
+  return tuningsForInstrument(instrumentId, customTunings);
 }
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];

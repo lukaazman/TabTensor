@@ -28,7 +28,7 @@ export function ScreenShell({ children, scroll = true, contentStyle }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.black },
+  safe: { flex: 1, backgroundColor: colors.paper },
   flex: { flex: 1 },
-  content: { padding: layout.screenPadding, paddingBottom: 32 },
+  content: { paddingHorizontal: layout.screenPadding, paddingTop: layout.screenTopPadding, paddingBottom: 36 },
 });

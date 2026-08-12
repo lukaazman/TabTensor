@@ -7,6 +7,8 @@ declare const require: (moduleName: string) => unknown;
 
 type NativeAudioApi = typeof import('react-native-audio-api');
 
+const PLAYBACK_LOOKAHEAD_SECONDS = 4;
+
 export class NativeSynthPlaybackEngine implements PlaybackEngine {
   private api: NativeAudioApi | null = null;
   private context: any = null;
@@ -22,6 +24,8 @@ export class NativeSynthPlaybackEngine implements PlaybackEngine {
   private activeSources: any[] = [];
   private timelineAudioStart = 0;
   private timelinePositionStart = 0;
+  private scheduledUntil = 0;
+  private nextNoteIndexes = new Map<string, number>();
   private countInSeconds = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
   private error?: string;
@@ -42,7 +46,10 @@ export class NativeSynthPlaybackEngine implements PlaybackEngine {
     this.position = 0;
     this.state = 'loading';
     this.error = undefined;
-    this.tracks = song.tracks.map((track) => ({ ...track, notes: [...track.notes] }));
+    this.tracks = song.tracks.map((track) => ({
+      ...track,
+      notes: [...track.notes].sort((a, b) => a.start - b.start),
+    }));
 
     if (!this.isAvailable() || !this.api) {
       this.state = 'error';
@@ -75,8 +82,12 @@ export class NativeSynthPlaybackEngine implements PlaybackEngine {
     const audioStart = this.context.currentTime + 0.08;
     this.timelineAudioStart = audioStart + this.countInSeconds;
     this.timelinePositionStart = this.position;
+    this.scheduledUntil = this.position;
+    this.nextNoteIndexes.clear();
     this.scheduleCountIn(audioStart, beatsPerBar, countIn);
-    this.scheduleNotes(audioStart + this.countInSeconds, this.position);
+    const initialEnd = Math.min(this.song.duration, this.position + PLAYBACK_LOOKAHEAD_SECONDS);
+    this.scheduleNotes(this.timelineAudioStart, this.position, initialEnd);
+    this.scheduledUntil = initialEnd;
     await this.context.resume();
     this.state = 'playing';
     this.startTimer();
@@ -204,17 +215,22 @@ export class NativeSynthPlaybackEngine implements PlaybackEngine {
     }
   }
 
-  private scheduleNotes(startAt: number, fromPosition: number): void {
+  private scheduleNotes(startAt: number, fromPosition: number, rangeEnd: number): void {
     if (!this.context || !this.song) return;
+    const boundedEnd = Math.min(this.song.duration, rangeEnd);
     this.tracks.forEach((track) => {
       const trackGain = this.trackGains.get(track.id);
       if (!trackGain || track.muted) return;
-      track.notes.forEach((note) => {
-        if (note.start + note.duration < fromPosition) return;
-        const relativeStart = Math.max(0, note.start - fromPosition) / this.speed;
-        const duration = Math.max(0.045, note.duration / this.speed);
+      let noteIndex = this.nextNoteIndexes.get(track.id) ?? 0;
+      while (noteIndex < track.notes.length && track.notes[noteIndex].start + track.notes[noteIndex].duration < fromPosition) noteIndex += 1;
+      while (noteIndex < track.notes.length && track.notes[noteIndex].start < boundedEnd) {
+        const note = track.notes[noteIndex];
+        const elapsedInNote = Math.max(0, this.timelinePositionStart - note.start);
+        const relativeStart = Math.max(0, note.start - this.timelinePositionStart) / this.speed;
+        const remainingDuration = Math.max(0, note.duration - elapsedInNote);
+        const duration = Math.max(0.045, (track.isPercussion ? Math.min(remainingDuration, 0.18) : remainingDuration) / this.speed);
         const oscillator = this.context.createOscillator({
-          type: 'triangle',
+          type: track.waveform ?? 'triangle',
           frequency: frequencyForMidi(note.midi, 440),
         });
         const envelope = this.context.createGain();
@@ -224,8 +240,17 @@ export class NativeSynthPlaybackEngine implements PlaybackEngine {
         oscillator.start(startAt + relativeStart);
         oscillator.stop(startAt + relativeStart + duration);
         this.activeSources.push(oscillator);
-      });
+        noteIndex += 1;
+      }
+      this.nextNoteIndexes.set(track.id, noteIndex);
     });
+  }
+
+  private scheduleNextNotes(): void {
+    if (!this.song || !this.context || this.scheduledUntil >= this.song.duration) return;
+    const nextEnd = Math.min(this.song.duration, this.scheduledUntil + PLAYBACK_LOOKAHEAD_SECONDS);
+    this.scheduleNotes(this.timelineAudioStart, this.scheduledUntil, nextEnd);
+    this.scheduledUntil = nextEnd;
   }
 
   private async stopAudioOnly(): Promise<void> {
@@ -250,6 +275,7 @@ export class NativeSynthPlaybackEngine implements PlaybackEngine {
     this.stopTimer();
     this.timer = setInterval(() => {
       this.position = this.calculatePosition();
+      if (this.scheduledUntil - this.position <= PLAYBACK_LOOKAHEAD_SECONDS / 2) this.scheduleNextNotes();
       if (this.position >= (this.song?.duration ?? 0)) {
         this.position = this.song?.duration ?? 0;
         this.state = 'stopped';

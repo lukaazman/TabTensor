@@ -1,0 +1,50 @@
+/* Hallmark · genre: modern-minimal · tone: technical · anchor hue: warm red · macrostructure: Workbench · theme: TabTensor Forge */
+:root {
+  --color-paper: oklch(15% 0.009 28);
+  --color-paper-2: oklch(19% 0.011 28);
+  --color-paper-3: oklch(24% 0.012 28);
+  --color-ink: oklch(96% 0.006 70);
+  --color-ink-2: oklch(77% 0.014 55);
+  --color-rule: oklch(29% 0.012 28);
+  --color-rule-2: oklch(39% 0.015 28);
+  --color-muted: oklch(62% 0.012 45);
+  --color-neutral: oklch(52% 0.012 45);
+  --color-accent: oklch(61% 0.18 28);
+  --color-accent-bright: oklch(68% 0.19 28);
+  --color-accent-wash: oklch(26% 0.07 28);
+  --color-accent-ink: oklch(14% 0.01 28);
+  --color-focus: oklch(75% 0.20 28);
+  --color-success: oklch(73% 0.13 145);
+  --color-warning: oklch(77% 0.13 75);
+
+  --font-display: system-ui, sans-serif;
+  --font-body: system-ui, sans-serif;
+  --font-mono: ui-monospace, monospace;
+
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+
+  --text-caption: 0.75rem;
+  --text-body: 1rem;
+  --text-section: 1.375rem;
+  --text-screen: 1.875rem;
+  --text-readout: 4.875rem;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 300ms;
+
+  --radius-card: 1rem;
+  --radius-control: 0.625rem;
+  --radius-pill: 999px;
+  --rule-hairline: 1px;
+}

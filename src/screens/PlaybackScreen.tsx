@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import { RangeSlider } from '@/components/RangeSlider';
 import { ScreenShell } from '@/components/ScreenShell';
-import { colors, type } from '@/theme';
+import { colors, layout, type } from '@/theme';
 import { GuitarProSong } from '@/types';
 import { useGuitarProPlayer } from '@/player/hooks/useGuitarProPlayer';
 import { ScoreView } from '@/player/components/ScoreView';
@@ -26,18 +26,28 @@ export function PlaybackScreen({ song, onBack }: { song: GuitarProSong; onBack: 
     <ScreenShell>
       <View style={styles.topBar}>
         <Pressable accessibilityRole="button" accessibilityLabel="Back to player files" onPress={onBack} style={styles.back}>
-          <Text style={styles.backIcon}>{'<'}</Text>
-          <Text style={type.mono}>FILES</Text>
+          <Text style={styles.backIcon}>{'‹'}</Text>
+          <Text style={type.section}>FILES</Text>
         </Pressable>
-        <Text style={type.mono}>{song.format}</Text>
+        <View style={styles.formatChip}><Text style={type.mono}>{song.format}</Text></View>
       </View>
 
       <View style={styles.titleBlock}>
+        <Text style={[type.section, styles.nowPlaying]}>NOW PLAYING</Text>
         <Text style={styles.title} numberOfLines={2}>{song.title}</Text>
-        <Text style={type.caption}>
-          {song.artist || 'Unknown artist'} - {song.tempo} BPM{song.timeSignature ? ` - ${song.timeSignature}` : ''}
-        </Text>
+        <View style={styles.songMeta}><Text style={type.caption}>{song.artist || 'Unknown artist'}</Text><Text style={type.mono}>{song.tempo} BPM{song.timeSignature ? ` · ${song.timeSignature}` : ''}</Text></View>
       </View>
+
+      {song.formatKind !== 'guitar-pro' ? (
+        <View style={styles.formatNote}>
+          <Text style={[type.section, styles.formatNoteTitle]}>{song.formatKind === 'musicxml' ? 'MUSICXML SCORE' : 'MIDI SEQUENCE'}</Text>
+          <Text style={type.caption}>
+            {song.formatKind === 'musicxml'
+              ? 'Staff notation, dynamics, tempo changes and lyrics are kept where the file provides them.'
+              : 'Playback follows the MIDI sequence with its tempo map, instruments, velocity and percussion tracks.'}
+          </Text>
+        </View>
+      ) : null}
 
       {player.snapshot.error ? (
         <View style={styles.error}>
@@ -67,7 +77,7 @@ export function PlaybackScreen({ song, onBack }: { song: GuitarProSong; onBack: 
       )}
 
       <View style={styles.mixerPanel}>
-        <Pressable onPress={() => setTracksOpen((current) => !current)} style={styles.panelHeader}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`${tracksOpen ? 'Collapse' : 'Expand'} tracks`} accessibilityState={{ expanded: tracksOpen }} onPress={() => setTracksOpen((current) => !current)} style={styles.panelHeader}>
           <View>
             <Text style={type.section}>TRACKS</Text>
             <Text style={type.caption}>{selectedTrack?.name ?? 'No track selected'} - {player.snapshot.tracks.length || song.tracks.length} tracks</Text>
@@ -96,22 +106,27 @@ export function PlaybackScreen({ song, onBack }: { song: GuitarProSong; onBack: 
           : null}
       </View>
 
-      <Text style={[type.caption, styles.footerNote]}>Playback is generated locally from the parsed tablature. Notes are read-only.</Text>
+      <Text style={[type.caption, styles.footerNote]}>{song.formatKind === 'guitar-pro' ? 'Playback is generated locally from the parsed tablature. Notes are read-only.' : 'Playback is generated locally from the imported score or sequence. Source data is read-only.'}</Text>
     </ScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
-  back: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingRight: 12 },
-  backIcon: { color: colors.redBright, fontSize: 30, lineHeight: 34, fontWeight: '300' },
-  titleBlock: { gap: 7 },
-  title: { color: colors.white, fontSize: 30, lineHeight: 34, fontWeight: '700', letterSpacing: -0.6 },
-  error: { marginTop: 14, padding: 14, gap: 7, borderWidth: 1, borderColor: colors.red, backgroundColor: colors.redDim },
-  errorTitle: { color: colors.redBright },
-  mixerPanel: { marginTop: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.panel, padding: 14 },
-  panelHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 13 },
-  chevron: { color: colors.redBright, fontSize: 24 },
-  master: { borderTopWidth: 1, borderColor: colors.border, paddingTop: 13, paddingBottom: 3 },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 },
+  back: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingRight: 12 },
+  backIcon: { color: colors.accentBright, fontSize: 32, lineHeight: 34, fontWeight: '300' },
+  formatChip: { minHeight: 30, paddingHorizontal: 10, borderRadius: layout.radiusPill, borderWidth: 1, borderColor: colors.rule, alignItems: 'center', justifyContent: 'center' },
+  titleBlock: { gap: 8 },
+  nowPlaying: { color: colors.accentBright },
+  title: { color: colors.ink, fontSize: 32, lineHeight: 36, fontWeight: '800', letterSpacing: -1 },
+  songMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  formatNote: { marginTop: 14, padding: 14, gap: 6, borderLeftWidth: 3, borderLeftColor: colors.accent, backgroundColor: colors.accentWash },
+  formatNoteTitle: { color: colors.accentBright },
+  error: { marginTop: 14, padding: 16, gap: 8, borderWidth: 1, borderColor: colors.accent, borderRadius: layout.radiusCard, backgroundColor: colors.accentWash },
+  errorTitle: { color: colors.accentBright },
+  mixerPanel: { marginTop: 14, borderWidth: 1, borderColor: colors.rule, borderRadius: layout.radiusCard, backgroundColor: colors.paperRaised, padding: 16 },
+  panelHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 15, minHeight: 50 },
+  chevron: { color: colors.accentBright, fontSize: 24 },
+  master: { borderTopWidth: 1, borderColor: colors.rule, paddingTop: 13, paddingBottom: 3 },
   footerNote: { marginTop: 18 },
 });

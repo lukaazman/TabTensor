@@ -7,7 +7,7 @@ import { colors } from '@/theme';
 export default function App() {
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle="light-content" backgroundColor={colors.black} />
+      <StatusBar barStyle="light-content" backgroundColor={colors.paper} />
       <AppNavigator />
     </SafeAreaProvider>
   );

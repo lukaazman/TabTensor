@@ -1,100 +1,106 @@
-import React, { useMemo, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+/* Hallmark · genre: modern-minimal · tone: technical · anchor hue: warm red · macrostructure: Workbench */
+import React, { useEffect, useState } from 'react';
+import { DimensionValue, Linking, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextInput, View, ViewStyle, useWindowDimensions } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import { ActionButton } from '@/components/ActionButton';
 import { ModalSheet } from '@/components/ModalSheet';
 import { RangeSlider } from '@/components/RangeSlider';
 import { ScreenShell } from '@/components/ScreenShell';
-import { SectionHeader } from '@/components/SectionHeader';
-import { TunerGauge } from '@/components/TunerGauge';
 import { colors, layout, type } from '@/theme';
-import { TuningDefinition } from '@/types';
-import { allTunings, findTuning, midiFromNoteName, noteNameForMidi, PRESET_TUNINGS } from '@/tuner/tunings';
+import { InstrumentDefinition, InstrumentId, TuningDefinition } from '@/types';
+import { allTunings, findTuning, INSTRUMENTS, instrumentForId, midiFromNoteName, noteNameForMidi } from '@/tuner/tunings';
 import { useTuner } from '@/tuner/hooks/useTuner';
 
 export function TunerScreen() {
   useKeepAwake('tabtensor-tuner');
+  const { width } = useWindowDimensions();
+  const compact = width <= 360;
+  const extraCompact = width <= 340;
   const tuner = useTuner();
+  const [instrumentPickerVisible, setInstrumentPickerVisible] = useState(false);
   const [tuningPickerVisible, setTuningPickerVisible] = useState(false);
   const [customVisible, setCustomVisible] = useState(false);
   const [calibrationVisible, setCalibrationVisible] = useState(false);
 
+  const instrument = instrumentForId(tuner.preferences.instrumentId);
   const tuning = tuner.tuning;
+  const selectedIndex = tuner.detection?.stringIndex ?? Math.min(tuner.preferences.manualStringIndex, tuning.strings.length - 1);
   const cents = tuner.detection?.cents ?? 0;
   const inTune = Boolean(tuner.detection && Math.abs(cents) <= 5);
-  const statusText = !tuner.detection
-    ? 'PLAY A STRING'
-    : inTune
-      ? 'IN TUNE'
-      : cents > 0
-        ? 'TUNE LOWER'
-        : 'TUNE HIGHER';
-
-  const statusColor = !tuner.detection ? colors.textMuted : inTune ? colors.green : colors.redBright;
+  const statusText = !tuner.detection ? 'PLAY A STRING' : inTune ? 'ON TARGET' : cents > 0 ? 'TUNE DOWN' : 'TUNE UP';
+  const statusColor = !tuner.detection ? colors.muted : inTune ? colors.success : colors.accentBright;
+  const targetNote = tuner.detection?.targetNote ?? tuning.strings[selectedIndex] ?? tuning.strings[0];
 
   return (
-    <ScreenShell>
+    <ScreenShell contentStyle={styles.screenContent}>
       <View style={styles.brandRow}>
-        <Text style={styles.brand}>TABTENSOR</Text>
-        <Text style={type.mono}>A4 {tuner.preferences.calibration} HZ</Text>
+        <View style={styles.brandLockup}><View style={styles.brandMark} /><Text style={styles.brand}>TABTENSOR</Text></View>
+        <View style={styles.localChip}><View style={styles.localDot} /><Text style={type.mono}>LOCAL</Text></View>
       </View>
-      <SectionHeader eyebrow="01 / TUNER" title="Guitar tuner" detail="LOCAL AUDIO" />
 
-      <View style={styles.selectorRow}>
-        <View style={styles.selectorCopy}>
-          <Text style={type.caption}>TUNING</Text>
-          <Text style={type.body}>{tuning.name}</Text>
-          <Text style={type.mono}>{tuning.shortName}</Text>
+      <View style={styles.pageHeading}>
+        <View style={styles.pageHeadingCopy}>
+          <View style={styles.eyebrowRow}><View style={styles.eyebrowMark} /><Text style={type.section}>01 / TUNER</Text></View>
+          <Text style={type.screenTitle}>Tune</Text>
         </View>
-        <ActionButton onPress={() => setTuningPickerVisible(true)} variant="secondary" accessibilityLabel="Choose guitar tuning">CHANGE</ActionButton>
+        <Text style={[type.mono, styles.calibrationLabel]}>A4 {tuner.preferences.calibration} HZ</Text>
       </View>
 
-      <View style={styles.tunerPanel}>
-        <View style={styles.readingTop}>
-          <View>
-            <Text style={type.caption}>DETECTED NOTE</Text>
-            <Text style={[styles.note, { color: inTune ? colors.green : colors.white }]}>{tuner.detection?.noteName ?? '—'}</Text>
+      <View style={[styles.selectionRow, compact && styles.selectionRowCompact]}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Choose instrument, ${instrument.name}`}
+          onPress={() => setInstrumentPickerVisible(true)}
+          style={({ pressed }) => [styles.instrumentTrigger, pressed && styles.pressed]}
+        >
+          <View style={styles.triggerIcon}><Text style={styles.triggerIconText}>{instrument.stringCount}</Text></View>
+          <View style={styles.triggerCopy}>
+            <Text style={type.caption}>INSTRUMENT · {instrument.family.toUpperCase()}</Text>
+            <Text numberOfLines={1} style={styles.triggerTitle}>{instrument.name}</Text>
+            <Text numberOfLines={1} style={[type.mono, styles.triggerDetail]}>{tuning.name} · {instrument.stringCount} STRINGS</Text>
           </View>
-          <View style={styles.readingMeta}>
-            <Text style={type.mono}>{tuner.detection ? `${tuner.detection.frequency.toFixed(1)} Hz` : '— Hz'}</Text>
-            <Text style={[type.mono, { color: statusColor }]}>{tuner.detection ? `${tuner.detection.cents > 0 ? '+' : ''}${tuner.detection.cents.toFixed(1)} cents` : 'WAITING'}</Text>
-          </View>
-        </View>
-        <TunerGauge cents={tuner.detection?.cents} active={Boolean(tuner.detection)} />
-        <View style={styles.statusRow}>
-          <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-          <Text style={[styles.statusText, { color: statusColor }]}>{statusText}</Text>
-          {tuner.detection ? <Text style={type.mono}>TARGET {tuner.detection.targetNote}</Text> : null}
-        </View>
-      </View>
-
-      <View style={styles.modeRow}>
-        <View>
-          <Text style={type.caption}>STRING MODE</Text>
-          <Text style={type.body}>{tuner.preferences.autoMode ? 'Automatic target selection' : `Locked to string ${tuner.preferences.manualStringIndex + 1}`}</Text>
-        </View>
-        <Pressable accessibilityRole="switch" accessibilityState={{ checked: tuner.preferences.autoMode }} onPress={tuner.toggleAuto} style={[styles.autoToggle, tuner.preferences.autoMode && styles.autoToggleActive]}>
-          <Text style={[type.mono, tuner.preferences.autoMode && styles.autoText]}>{tuner.preferences.autoMode ? 'AUTO ON' : 'AUTO OFF'}</Text>
+          <Text style={styles.chevron}>⌄</Text>
         </Pressable>
+        <AutoToggle active={tuner.preferences.autoMode} compact={compact} onPress={tuner.toggleAuto} />
       </View>
 
-      <Text style={[type.section, styles.subsection]}>STRINGS</Text>
-      <View style={styles.stringGrid}>
-        {tuning.strings.map((stringName, index) => {
-          const selected = tuner.detection?.stringIndex === index || (!tuner.preferences.autoMode && tuner.preferences.manualStringIndex === index);
-          return (
-            <Pressable key={`${stringName}-${index}`} accessibilityRole="button" accessibilityLabel={`Tune string ${index + 1}, ${stringName}`} onPress={() => tuner.selectString(index)} style={[styles.stringCell, selected && styles.stringCellSelected]}>
-              <Text style={[styles.stringNumber, selected && styles.selectedText]}>{String(index + 1).padStart(2, '0')}</Text>
-              <Text style={[styles.stringName, selected && styles.selectedText]}>{stringName.replace(/-?\d+$/, '')}</Text>
-              <Text style={[type.mono, selected && styles.selectedText]}>{stringName.match(/-?\d+$/)?.[0]}</Text>
-            </Pressable>
-          );
-        })}
+      <View style={styles.tunerSurface}>
+        <View style={styles.surfaceTopline}>
+          <Text style={type.caption}>{instrument.shortName.toUpperCase()} / {tuning.shortName}</Text>
+          <Text style={[type.mono, { color: statusColor }]}>{statusText}</Text>
+        </View>
+
+        <PitchGrid cents={tuner.detection?.cents} noteName={tuner.detection?.noteName} detection={Boolean(tuner.detection)} inTune={inTune} statusColor={statusColor} />
+
+        <View style={[styles.instrumentStage, compact && styles.instrumentStageCompact]}>
+          <StringColumn strings={tuning.strings.slice(0, Math.ceil(tuning.strings.length / 2))} startIndex={0} selectedIndex={selectedIndex} onSelect={tuner.selectString} />
+          <InstrumentIllustration instrument={instrument} stringCount={tuning.strings.length} selectedIndex={selectedIndex} />
+          <StringColumn strings={tuning.strings.slice(Math.ceil(tuning.strings.length / 2))} startIndex={Math.ceil(tuning.strings.length / 2)} selectedIndex={selectedIndex} onSelect={tuner.selectString} align="right" />
+        </View>
+
+        <View style={styles.surfaceBottomline}>
+          <View style={styles.bottomReadout}>
+            <Text style={type.caption}>TARGET STRING {String(selectedIndex + 1).padStart(2, '0')} / {String(tuning.strings.length).padStart(2, '0')}</Text>
+            <Text style={styles.targetNote}>{targetNote}</Text>
+          </View>
+          <View style={styles.bottomReadoutRight}>
+            <Text style={[type.mono, styles.centsReadout, { color: statusColor }]}>{tuner.detection ? `${cents > 0 ? '+' : ''}${cents.toFixed(1)}¢` : '—¢'}</Text>
+            <Text style={[type.mono, styles.frequencyReadout]}>{tuner.detection ? `${tuner.detection.frequency.toFixed(1)} HZ` : 'WAITING'}</Text>
+          </View>
+        </View>
       </View>
 
-      <View style={styles.settingsRow}>
-        <View style={styles.settingCopy}><Text style={type.caption}>REFERENCE PITCH</Text><Text style={type.body}>A4 = {tuner.preferences.calibration} Hz</Text></View>
-        <ActionButton variant="quiet" onPress={() => setCalibrationVisible(true)} accessibilityLabel="Adjust reference pitch">CALIBRATE</ActionButton>
+      <View style={[styles.actionLedger, compact && styles.actionLedgerCompact]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Choose tuning" onPress={() => setTuningPickerVisible(true)} style={({ pressed }) => [styles.ledgerAction, pressed && styles.pressed]}>
+          <Text style={type.caption}>TUNING</Text>
+          <Text numberOfLines={1} style={styles.ledgerValue}>{tuning.name}</Text>
+          <Text numberOfLines={1} style={[type.mono, styles.ledgerDetail]}>{tuning.shortName}</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Adjust reference pitch" onPress={() => setCalibrationVisible(true)} style={({ pressed }) => [styles.ledgerAction, styles.ledgerActionRight, pressed && styles.pressed]}>
+          <Text style={type.caption}>REFERENCE</Text>
+          <Text style={styles.ledgerValue}>{tuner.preferences.calibration} Hz</Text>
+          <Text style={[type.mono, styles.ledgerDetail]}>CALIBRATE ·</Text>
+        </Pressable>
       </View>
 
       {(tuner.status === 'denied' || tuner.status === 'error' || tuner.status === 'unavailable') ? (
@@ -108,32 +114,170 @@ export function TunerScreen() {
         </View>
       ) : null}
 
-      <TuningPicker visible={tuningPickerVisible} customTunings={tuner.preferences.customTunings} selectedId={tuner.preferences.tuningId} onClose={() => setTuningPickerVisible(false)} onSelect={(selected) => { tuner.setTuning(selected.id); setTuningPickerVisible(false); }} onCustom={() => { setTuningPickerVisible(false); setCustomVisible(true); }} />
-      <CustomTuningModal visible={customVisible} initial={findTuning('custom', tuner.preferences.customTunings)} onClose={() => setCustomVisible(false)} onSave={(custom) => { tuner.updatePreferences({ customTunings: [custom], tuningId: 'custom' }); setCustomVisible(false); }} />
+      <InstrumentPicker visible={instrumentPickerVisible} selectedId={instrument.id} onClose={() => setInstrumentPickerVisible(false)} onSelect={(selected) => { tuner.setInstrument(selected.id); setInstrumentPickerVisible(false); }} />
+      <TuningPicker instrument={instrument} visible={tuningPickerVisible} customTunings={tuner.preferences.customTunings} selectedId={tuner.preferences.tuningId} onClose={() => setTuningPickerVisible(false)} onSelect={(selected) => { tuner.setTuning(selected.id); setTuningPickerVisible(false); }} onCustom={() => { setTuningPickerVisible(false); setCustomVisible(true); }} />
+      <CustomTuningModal key={`${instrument.id}-${tuning.id}`} visible={customVisible} instrument={instrument} initial={findTuning('custom', tuner.preferences.customTunings, instrument.id)} onClose={() => setCustomVisible(false)} onSave={(custom) => { const otherInstrumentTunings = tuner.preferences.customTunings.filter((candidate) => !candidate.instrumentIds?.includes(instrument.id)); tuner.updatePreferences({ customTunings: [...otherInstrumentTunings, custom], tuningId: 'custom' }); setCustomVisible(false); }} />
       <CalibrationModal visible={calibrationVisible} value={tuner.preferences.calibration} onClose={() => setCalibrationVisible(false)} onSave={(value) => { tuner.updatePreferences({ calibration: value }); setCalibrationVisible(false); }} />
     </ScreenShell>
   );
 }
 
-function TuningPicker({ visible, customTunings, selectedId, onClose, onSelect, onCustom }: { visible: boolean; customTunings: TuningDefinition[]; selectedId: string; onClose: () => void; onSelect: (tuning: TuningDefinition) => void; onCustom: () => void }) {
-  const options = allTunings(customTunings);
+function AutoToggle({ active, compact, onPress }: { active: boolean; compact: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityLabel="Toggle automatic string target selection"
+      accessibilityState={{ checked: active }}
+      onPress={onPress}
+      style={({ pressed }) => [styles.autoToggle, compact && styles.autoToggleCompact, active && styles.autoToggleActive, pressed && styles.pressed]}
+    >
+      <Text style={[type.mono, styles.autoLabel, active && styles.autoLabelActive]}>AUTO</Text>
+      <View style={[styles.autoTrack, active && styles.autoTrackActive]}><View style={[styles.autoKnob, active && styles.autoKnobActive]} /></View>
+    </Pressable>
+  );
+}
+
+function PitchGrid({ cents, noteName, detection, inTune, statusColor }: { cents?: number; noteName?: string; detection: boolean; inTune: boolean; statusColor: string }) {
+  const clamped = Math.min(50, Math.max(-50, cents ?? 0));
+  const markerPosition: DimensionValue = `${((clamped + 50) / 100) * 100}%`;
+  const level = detection ? 1 : 0.32;
+  const waveform = Array.from({ length: 29 }, (_, index) => {
+    const phase = index / 2.8 + (cents ?? 0) / 16;
+    const shape = Math.abs(Math.sin(phase) * 0.65 + Math.sin(phase * 0.42) * 0.35);
+    return 8 + Math.round(shape * 30 * level);
+  });
+  const leftActive = detection && clamped < -5;
+  const rightActive = detection && clamped > 5;
+
+  return (
+    <View style={styles.pitchGrid}>
+      <View style={styles.gridLines} pointerEvents="none">
+        {Array.from({ length: 5 }, (_, index) => <View key={`h-${index}`} style={[styles.gridHorizontal, { top: `${index * 25}%` }]} />)}
+        {Array.from({ length: 9 }, (_, index) => <View key={`v-${index}`} style={[styles.gridVertical, { left: `${index * 12.5}%` }]} />)}
+      </View>
+      <View style={styles.pitchReadout}>
+        <View style={styles.pitchNoteBlock}>
+          <Text style={[styles.pitchNote, { color: inTune ? colors.success : colors.ink }]}>{noteName ?? '—'}</Text>
+          <Text style={[type.mono, styles.pitchState, { color: statusColor }]}>{detection ? (inTune ? 'IN TUNE' : `${clamped > 0 ? '+' : ''}${clamped.toFixed(1)} CENTS`) : 'LISTENING'}</Text>
+        </View>
+        <Text style={[type.mono, styles.pitchCenterLabel]}>0</Text>
+      </View>
+      <View style={styles.waveform}>
+        {waveform.map((height, index) => <View key={index} style={[styles.waveBar, { height, backgroundColor: inTune ? colors.success : colors.accentBright, opacity: detection ? 0.78 : 0.28 }]} />)}
+      </View>
+      <View style={styles.pitchTrack}>
+        <View style={styles.pitchTrackCenter} />
+        <View style={[styles.pitchMarker, { left: markerPosition, backgroundColor: inTune ? colors.success : statusColor }]} />
+      </View>
+      <View style={styles.directionRow}>
+        <View style={[styles.directionBlock, leftActive && styles.directionActive]}><Text style={[styles.directionArrow, leftActive && styles.directionTextActive]}>←</Text><Text style={[type.mono, styles.directionLabel, leftActive && styles.directionTextActive]}>TUNE UP</Text></View>
+        <Text style={[type.mono, styles.directionZero, inTune && styles.directionZeroActive]}>ON TARGET</Text>
+        <View style={[styles.directionBlock, styles.directionBlockRight, rightActive && styles.directionActive]}><Text style={[type.mono, styles.directionLabel, rightActive && styles.directionTextActive]}>TUNE DOWN</Text><Text style={[styles.directionArrow, rightActive && styles.directionTextActive]}>→</Text></View>
+      </View>
+    </View>
+  );
+}
+
+function StringColumn({ strings, startIndex, selectedIndex, onSelect, align = 'left' }: { strings: string[]; startIndex: number; selectedIndex: number; onSelect: (index: number) => void; align?: 'left' | 'right' }) {
+  return (
+    <View style={[styles.stringColumn, align === 'right' && styles.stringColumnRight]}>
+      {strings.map((stringName, index) => {
+        const actualIndex = startIndex + index;
+        const selected = selectedIndex === actualIndex;
+        return (
+          <Pressable key={`${stringName}-${actualIndex}`} accessibilityRole="button" accessibilityLabel={`Tune string ${actualIndex + 1}, ${stringName}`} onPress={() => onSelect(actualIndex)} hitSlop={4} style={({ pressed }) => [styles.stringBadge, align === 'right' && styles.stringBadgeRight, selected && styles.stringBadgeSelected, pressed && styles.pressed]}>
+            <Text style={[styles.stringBadgeNote, selected && styles.stringBadgeNoteSelected]}>{stringName.replace(/-?\d+$/, '')}</Text>
+            <Text style={[type.mono, styles.stringBadgeOctave, selected && styles.stringBadgeOctaveSelected]}>{stringName.match(/-?\d+$/)?.[0]}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function InstrumentIllustration({ instrument, stringCount, selectedIndex }: { instrument: InstrumentDefinition; stringCount: number; selectedIndex: number }) {
+  const bodyStyle = bodyStyleFor(instrument.bodyStyle);
+  const stringPositions: DimensionValue[] = Array.from({ length: stringCount }, (_, index) => `${18 + (index * 64) / Math.max(1, stringCount - 1)}%` as DimensionValue);
+  return (
+    <View style={styles.instrumentIllustration} accessibilityLabel={`${instrument.name}, ${stringCount} strings`}>
+      <View style={[styles.instrumentHeadstock, instrument.bodyStyle === 'banjo' && styles.banjoHeadstock]} />
+      <View style={styles.instrumentNeck}>
+        {Array.from({ length: 7 }, (_, index) => <View key={index} style={[styles.fret, { top: 14 + index * 13 }]} />)}
+      </View>
+      <View style={[styles.instrumentBody, bodyStyle]}>
+        {instrument.bodyStyle === 'electric' ? <View style={styles.pickupStack}><View style={styles.pickup} /><View style={styles.pickup} /></View> : <View style={styles.soundHole} />}
+        <View style={styles.instrumentBridge} />
+      </View>
+      {stringPositions.map((left, index) => <View key={index} style={[styles.instrumentString, { left }, selectedIndex === index && styles.instrumentStringSelected]} />)}
+    </View>
+  );
+}
+
+function bodyStyleFor(bodyStyle: InstrumentDefinition['bodyStyle']): StyleProp<ViewStyle> {
+  switch (bodyStyle) {
+    case 'electric': return styles.instrumentBodyElectric;
+    case 'ukulele': return styles.instrumentBodyUkulele;
+    case 'bass': return styles.instrumentBodyBass;
+    case 'mandolin': return styles.instrumentBodyMandolin;
+    case 'violin': return styles.instrumentBodyViolin;
+    case 'banjo': return styles.instrumentBodyBanjo;
+    default: return styles.instrumentBodyGuitar;
+  }
+}
+
+function InstrumentPicker({ visible, selectedId, onClose, onSelect }: { visible: boolean; selectedId: InstrumentId; onClose: () => void; onSelect: (instrument: InstrumentDefinition) => void }) {
   return (
     <ModalSheet visible={visible} onClose={onClose}>
-      <View style={styles.modalHeader}><Text style={type.screenTitle}>Choose tuning</Text><Text style={type.caption}>Six-string presets</Text></View>
-      {options.map((tuning, index) => (
-        <Pressable key={`${tuning.id}-${index}`} onPress={() => onSelect(tuning)} style={[styles.optionRow, selectedId === tuning.id && styles.optionSelected]}>
-          <View><Text style={[type.body, selectedId === tuning.id && styles.selectedText]}>{tuning.name}</Text><Text style={type.mono}>{tuning.shortName}</Text></View>
-          {selectedId === tuning.id ? <Text style={styles.check}>●</Text> : null}
-        </Pressable>
-      ))}
+      <Text style={type.screenTitle}>Choose instrument</Text>
+      <Text style={[type.caption, styles.modalIntro]}>The tuner adapts targets and common tunings to the selected string layout.</Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalList}>
+        {INSTRUMENTS.map((instrument) => {
+          const selected = selectedId === instrument.id;
+          return (
+            <Pressable key={instrument.id} accessibilityRole="radio" accessibilityLabel={instrument.name} accessibilityState={{ selected }} onPress={() => onSelect(instrument)} style={({ pressed }) => [styles.optionRow, selected && styles.optionSelected, pressed && styles.pressed]}>
+              <View style={styles.instrumentOptionIcon}><Text style={styles.instrumentOptionCount}>{instrument.stringCount}</Text></View>
+              <View style={styles.optionCopy}><Text style={[type.body, selected && styles.selectedText]}>{instrument.name}</Text><Text style={type.mono}>{instrument.family.toUpperCase()} · {instrument.stringCount} STRINGS</Text></View>
+              {selected ? <Text style={styles.check}>●</Text> : null}
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </ModalSheet>
+  );
+}
+
+function TuningPicker({ instrument, visible, customTunings, selectedId, onClose, onSelect, onCustom }: { instrument: InstrumentDefinition; visible: boolean; customTunings: TuningDefinition[]; selectedId: string; onClose: () => void; onSelect: (tuning: TuningDefinition) => void; onCustom: () => void }) {
+  const options = allTunings(instrument.id, customTunings);
+  return (
+    <ModalSheet visible={visible} onClose={onClose}>
+      <View style={styles.modalHeader}><Text style={type.screenTitle}>Choose tuning</Text><Text style={type.caption}>{instrument.name} · {instrument.stringCount} strings</Text></View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalList}>
+        {options.map((tuning, index) => {
+          const selected = selectedId === tuning.id;
+          return (
+            <Pressable key={`${tuning.id}-${index}`} accessibilityRole="radio" accessibilityLabel={`${tuning.name}, ${tuning.shortName}`} accessibilityState={{ selected }} onPress={() => onSelect(tuning)} hitSlop={2} style={({ pressed }) => [styles.optionRow, selected && styles.optionSelected, pressed && styles.pressed]}>
+              <View style={styles.optionCopy}><Text style={[type.body, selected && styles.selectedText]}>{tuning.name}</Text><Text style={type.mono}>{tuning.shortName}</Text></View>
+              {selected ? <Text style={styles.check}>●</Text> : null}
+            </Pressable>
+          );
+        })}
+      </ScrollView>
       <ActionButton variant="secondary" onPress={onCustom}>EDIT CUSTOM TUNING</ActionButton>
     </ModalSheet>
   );
 }
 
-function CustomTuningModal({ visible, initial, onClose, onSave }: { visible: boolean; initial: TuningDefinition; onClose: () => void; onSave: (tuning: TuningDefinition) => void }) {
+function CustomTuningModal({ visible, instrument, initial, onClose, onSave }: { visible: boolean; instrument: InstrumentDefinition; initial: TuningDefinition; onClose: () => void; onSave: (tuning: TuningDefinition) => void }) {
   const [name, setName] = useState(initial.name === 'Custom' ? 'My tuning' : initial.name);
   const [strings, setStrings] = useState(initial.strings);
+
+  useEffect(() => {
+    if (visible) {
+      setName(initial.name === 'Custom' ? 'My tuning' : initial.name);
+      setStrings(initial.strings);
+    }
+  }, [initial, visible]);
+
   const updateString = (index: number, delta: number) => {
     try {
       const next = noteNameForMidi(midiFromNoteName(strings[index]) + delta, strings[index].includes('b'));
@@ -142,26 +286,34 @@ function CustomTuningModal({ visible, initial, onClose, onSave }: { visible: boo
       // Keep the row unchanged if a malformed custom value was persisted.
     }
   };
+
   return (
     <ModalSheet visible={visible} onClose={onClose}>
       <Text style={type.screenTitle}>Custom tuning</Text>
-      <Text style={[type.caption, styles.modalIntro]}>Adjust each target by semitone. The tuning is stored locally.</Text>
-      <TextInput value={name} onChangeText={setName} placeholder="Tuning name" placeholderTextColor={colors.textDim} style={styles.input} accessibilityLabel="Custom tuning name" />
-      {strings.map((stringName, index) => (
-        <View key={index} style={styles.customRow}>
-          <Text style={styles.customIndex}>{index + 1}</Text>
-          <Text style={styles.customNote}>{stringName}</Text>
-          <Pressable onPress={() => updateString(index, -1)} style={styles.stepButton} accessibilityLabel={`Lower string ${index + 1}`}><Text style={type.body}>−</Text></Pressable>
-          <Pressable onPress={() => updateString(index, 1)} style={styles.stepButton} accessibilityLabel={`Raise string ${index + 1}`}><Text style={type.body}>+</Text></Pressable>
-        </View>
-      ))}
-      <ActionButton variant="primary" onPress={() => onSave({ id: 'custom', name: name.trim() || 'My tuning', shortName: strings.map((value) => value.replace(/-?\d+$/, '')).join(' '), strings, isCustom: true })}>SAVE CUSTOM TUNING</ActionButton>
+      <Text style={[type.caption, styles.modalIntro]}>Adjust each target by semitone. This {instrument.shortName.toLowerCase()} tuning stays on this device.</Text>
+      <Text style={type.caption}>TUNING NAME</Text>
+      <TextInput value={name} onChangeText={setName} placeholder="My tuning" placeholderTextColor={colors.textDim} style={styles.input} accessibilityLabel="Custom tuning name" />
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.customList}>
+        {strings.map((stringName, index) => (
+          <View key={`${index}-${stringName}`} style={styles.customRow}>
+            <Text style={styles.customIndex}>{String(index + 1).padStart(2, '0')}</Text>
+            <Text style={styles.customNote}>{stringName}</Text>
+            <Pressable onPress={() => updateString(index, -1)} hitSlop={2} style={({ pressed }) => [styles.stepButton, pressed && styles.pressed]} accessibilityLabel={`Lower string ${index + 1}`}><Text style={type.body}>−</Text></Pressable>
+            <Pressable onPress={() => updateString(index, 1)} hitSlop={2} style={({ pressed }) => [styles.stepButton, pressed && styles.pressed]} accessibilityLabel={`Raise string ${index + 1}`}><Text style={type.body}>+</Text></Pressable>
+          </View>
+        ))}
+      </ScrollView>
+      <ActionButton variant="primary" onPress={() => onSave({ id: 'custom', name: name.trim() || 'My tuning', shortName: strings.map((value) => value.replace(/-?\d+$/, '')).join(' '), strings, instrumentIds: [instrument.id], isCustom: true })}>SAVE CUSTOM TUNING</ActionButton>
     </ModalSheet>
   );
 }
 
 function CalibrationModal({ visible, value, onClose, onSave }: { visible: boolean; value: number; onClose: () => void; onSave: (value: number) => void }) {
   const [next, setNext] = useState(value);
+  useEffect(() => {
+    if (visible) setNext(value);
+  }, [value, visible]);
+
   return (
     <ModalSheet visible={visible} onClose={onClose}>
       <Text style={type.screenTitle}>Reference pitch</Text>
@@ -174,42 +326,122 @@ function CalibrationModal({ visible, value, onClose, onSave }: { visible: boolea
 }
 
 const styles = StyleSheet.create({
-  brandRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 },
-  brand: { color: colors.redBright, fontSize: 13, fontWeight: '800', letterSpacing: 2.5 },
-  selectorRow: { backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 },
-  selectorCopy: { flex: 1, gap: 4 },
-  tunerPanel: { backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.borderStrong, padding: 18, gap: 20, marginBottom: 14 },
-  readingTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  note: { fontSize: 74, lineHeight: 78, fontWeight: '700', letterSpacing: -4 },
-  readingMeta: { gap: 7, alignItems: 'flex-end', paddingTop: 6 },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  statusDot: { width: 8, height: 8, borderRadius: 4 },
-  statusText: { flex: 1, fontSize: 13, fontWeight: '800', letterSpacing: 1.2 },
-  modeRow: { backgroundColor: colors.panelRaised, borderWidth: 1, borderColor: colors.border, padding: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  autoToggle: { minHeight: 38, minWidth: 92, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.borderStrong, borderRadius: layout.radius },
-  autoToggleActive: { borderColor: colors.red, backgroundColor: colors.redDim },
-  autoText: { color: colors.redBright },
-  subsection: { marginTop: 22, marginBottom: 10 },
-  stringGrid: { flexDirection: 'row', gap: 7 },
-  stringCell: { flex: 1, minHeight: 84, padding: 8, backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, gap: 4 },
-  stringCellSelected: { borderColor: colors.red, backgroundColor: colors.redDim },
-  stringNumber: { ...type.mono, color: colors.textDim },
-  stringName: { color: colors.white, fontSize: 23, fontWeight: '700' },
-  selectedText: { color: colors.redBright },
-  settingsRow: { marginTop: 20, paddingTop: 18, borderTopWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
-  settingCopy: { flex: 1, gap: 4 },
-  notice: { marginTop: 22, padding: 14, borderWidth: 1, borderColor: colors.red, backgroundColor: colors.redDim, gap: 8 },
-  noticeTitle: { color: colors.redBright },
-  noticeActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  screenContent: { paddingBottom: 40 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 },
+  brandLockup: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  brandMark: { width: 10, height: 10, borderRadius: 3, backgroundColor: colors.accent },
+  brand: { color: colors.ink, fontSize: 13, fontWeight: '800', letterSpacing: 2.4 },
+  localChip: { minHeight: 30, paddingHorizontal: 10, borderRadius: layout.radiusPill, borderWidth: 1, borderColor: colors.rule, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  localDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success },
+  pageHeading: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 16 },
+  pageHeadingCopy: { gap: 8 },
+  eyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  eyebrowMark: { width: 7, height: 7, borderRadius: 2, backgroundColor: colors.accent },
+  calibrationLabel: { color: colors.muted, paddingBottom: 4 },
+  selectionRow: { flexDirection: 'row', alignItems: 'stretch', gap: 8, marginBottom: 12 },
+  selectionRowCompact: { gap: 6 },
+  instrumentTrigger: { flex: 1, minHeight: 68, padding: 10, borderRadius: layout.radiusCard, backgroundColor: colors.paperRaised, borderWidth: 1, borderColor: colors.ruleStrong, flexDirection: 'row', alignItems: 'center', gap: 9 },
+  triggerIcon: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.accentWash, borderWidth: 1, borderColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  triggerIconText: { color: colors.accentBright, fontFamily: 'monospace', fontSize: 13, fontWeight: '800' },
+  triggerCopy: { flex: 1, minWidth: 0, gap: 2 },
+  triggerTitle: { color: colors.ink, fontSize: 15, fontWeight: '800' },
+  triggerDetail: { color: colors.inkMuted, fontSize: 10 },
+  chevron: { color: colors.inkMuted, fontSize: 23, lineHeight: 22, paddingBottom: 5 },
+  autoToggle: { width: 78, minHeight: 68, borderRadius: layout.radiusCard, borderWidth: 1, borderColor: colors.ruleStrong, backgroundColor: colors.paperRaised, alignItems: 'center', justifyContent: 'center', gap: 6 },
+  autoToggleCompact: { width: 70 },
+  autoToggleActive: { borderColor: colors.accent, backgroundColor: colors.accentWash },
+  autoLabel: { color: colors.inkMuted, fontSize: 10 },
+  autoLabelActive: { color: colors.accentBright },
+  autoTrack: { width: 34, height: 18, borderRadius: 9, padding: 2, justifyContent: 'center', backgroundColor: colors.ruleStrong },
+  autoTrackActive: { backgroundColor: colors.accent },
+  autoKnob: { width: 14, height: 14, borderRadius: 7, backgroundColor: colors.inkMuted },
+  autoKnobActive: { alignSelf: 'flex-end', backgroundColor: colors.ink },
+  tunerSurface: { backgroundColor: colors.paperRaised, borderRadius: layout.radiusCard, borderWidth: 1, borderColor: colors.ruleStrong, padding: 14, overflow: 'hidden' },
+  surfaceTopline: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, gap: 10 },
+  pitchGrid: { height: 188, borderRadius: layout.radiusControl, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.rule, overflow: 'hidden', position: 'relative', padding: 12, justifyContent: 'space-between' },
+  gridLines: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, opacity: 0.72 },
+  gridHorizontal: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: colors.rule },
+  gridVertical: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: colors.rule },
+  pitchReadout: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-start', position: 'relative', zIndex: 1 },
+  pitchNoteBlock: { alignItems: 'center', gap: 1 },
+  pitchNote: { fontSize: 50, lineHeight: 54, fontWeight: '800', letterSpacing: -3 },
+  pitchState: { fontSize: 9, letterSpacing: 1.1 },
+  pitchCenterLabel: { position: 'absolute', right: 0, top: 2, color: colors.muted },
+  waveform: { height: 38, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, zIndex: 1 },
+  waveBar: { width: 2, borderRadius: 2, minHeight: 4 },
+  pitchTrack: { height: 6, borderRadius: 3, backgroundColor: colors.paperSoft, position: 'relative', zIndex: 1 },
+  pitchTrackCenter: { position: 'absolute', left: '50%', top: -4, bottom: -4, width: 1, backgroundColor: colors.ink, opacity: 0.7 },
+  pitchMarker: { position: 'absolute', top: -3, bottom: -3, width: 3, marginLeft: -1.5, borderRadius: 2 },
+  directionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', zIndex: 1, gap: 6 },
+  directionBlock: { minWidth: 66, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  directionBlockRight: { justifyContent: 'flex-end' },
+  directionActive: { opacity: 1 },
+  directionArrow: { color: colors.muted, fontSize: 17, lineHeight: 17 },
+  directionLabel: { color: colors.muted, fontSize: 8, letterSpacing: 0.4 },
+  directionTextActive: { color: colors.accentBright },
+  directionZero: { color: colors.neutral, fontSize: 8, letterSpacing: 0.7 },
+  directionZeroActive: { color: colors.success },
+  instrumentStage: { height: 246, flexDirection: 'row', alignItems: 'stretch', justifyContent: 'center', gap: 8, paddingTop: 10 },
+  instrumentStageCompact: { height: 224, gap: 4 },
+  stringColumn: { width: 55, justifyContent: 'space-around', alignItems: 'flex-start', paddingVertical: 8 },
+  stringColumnRight: { alignItems: 'flex-end' },
+  stringBadge: { minWidth: 47, minHeight: 43, paddingHorizontal: 7, borderRadius: layout.radiusControl, borderWidth: 1, borderColor: 'transparent', justifyContent: 'center', alignItems: 'flex-start', gap: 1 },
+  stringBadgeRight: { alignItems: 'flex-end' },
+  stringBadgeSelected: { backgroundColor: colors.accentWash, borderColor: colors.accent },
+  stringBadgeNote: { color: colors.inkMuted, fontSize: 21, lineHeight: 22, fontWeight: '800' },
+  stringBadgeNoteSelected: { color: colors.accentBright },
+  stringBadgeOctave: { color: colors.neutral, fontSize: 9 },
+  stringBadgeOctaveSelected: { color: colors.accentBright },
+  instrumentIllustration: { width: 130, height: 236, position: 'relative', alignItems: 'center' },
+  instrumentHeadstock: { position: 'absolute', top: 0, width: 35, height: 28, borderRadius: 8, backgroundColor: colors.paperSoft, borderWidth: 1, borderColor: colors.ruleStrong, zIndex: 2 },
+  banjoHeadstock: { width: 42, borderRadius: 4 },
+  instrumentNeck: { position: 'absolute', top: 22, width: 30, height: 112, backgroundColor: colors.paperSoft, borderLeftWidth: 1, borderRightWidth: 1, borderColor: colors.ruleStrong, zIndex: 1 },
+  fret: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: colors.ruleStrong },
+  instrumentBody: { position: 'absolute', top: 104, width: 106, height: 128, borderWidth: 1, borderColor: colors.accent, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
+  instrumentBodyGuitar: { borderRadius: 40, backgroundColor: colors.instrumentWood, transform: [{ scaleX: 0.78 }] },
+  instrumentBodyElectric: { width: 100, height: 117, top: 108, borderRadius: 24, backgroundColor: colors.paperSoft, borderColor: colors.ruleStrong, transform: [{ skewX: '-6deg' }] },
+  instrumentBodyUkulele: { width: 84, height: 112, top: 112, borderRadius: 36, backgroundColor: colors.instrumentWoodLight, transform: [{ scaleX: 0.84 }] },
+  instrumentBodyBass: { width: 112, height: 136, top: 98, borderRadius: 42, backgroundColor: colors.instrumentWoodDeep, transform: [{ scaleX: 0.76 }] },
+  instrumentBodyMandolin: { width: 98, height: 116, top: 108, borderRadius: 28, backgroundColor: colors.instrumentWoodMid, transform: [{ scaleX: 0.8 }] },
+  instrumentBodyViolin: { width: 88, height: 128, top: 102, borderRadius: 33, backgroundColor: colors.instrumentWoodLight, transform: [{ scaleX: 0.7 }] },
+  instrumentBodyBanjo: { width: 112, height: 112, top: 108, borderRadius: 56, backgroundColor: colors.paperSoft, borderColor: colors.ruleStrong },
+  soundHole: { width: 25, height: 25, borderRadius: 13, borderWidth: 1, borderColor: colors.accentBright, backgroundColor: colors.paper },
+  pickupStack: { gap: 12, alignItems: 'center' },
+  pickup: { width: 38, height: 7, borderRadius: 3, backgroundColor: colors.accent },
+  instrumentBridge: { position: 'absolute', bottom: 25, width: 42, height: 4, borderRadius: 2, backgroundColor: colors.inkMuted, opacity: 0.8 },
+  instrumentString: { position: 'absolute', top: 12, bottom: 3, width: 1, backgroundColor: colors.inkMuted, opacity: 0.78, zIndex: 3 },
+  instrumentStringSelected: { width: 3, marginLeft: -1, backgroundColor: colors.accentBright, opacity: 1 },
+  surfaceBottomline: { borderTopWidth: 1, borderColor: colors.rule, paddingTop: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
+  bottomReadout: { gap: 2, flex: 1, minWidth: 0 },
+  targetNote: { color: colors.ink, fontSize: 22, lineHeight: 26, fontWeight: '800' },
+  bottomReadoutRight: { alignItems: 'flex-end', gap: 3 },
+  centsReadout: { fontSize: 18 },
+  frequencyReadout: { color: colors.muted, fontSize: 9 },
+  actionLedger: { marginTop: 12, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.rule, flexDirection: 'row' },
+  actionLedgerCompact: { flexDirection: 'column' },
+  ledgerAction: { flex: 1, minHeight: 78, paddingVertical: 12, paddingRight: 10, gap: 3 },
+  ledgerActionRight: { paddingLeft: 14, borderLeftWidth: 1, borderColor: colors.rule },
+  ledgerValue: { color: colors.ink, fontSize: 15, fontWeight: '800' },
+  ledgerDetail: { color: colors.inkMuted, fontSize: 9 },
+  notice: { marginTop: 18, padding: 16, borderWidth: 1, borderColor: colors.accent, borderRadius: layout.radiusCard, backgroundColor: colors.accentWash, gap: 9 },
+  noticeTitle: { color: colors.accentBright },
+  noticeActions: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
   modalHeader: { gap: 5, marginBottom: 10 },
-  modalIntro: { marginTop: 8, marginBottom: 18 },
-  optionRow: { minHeight: 58, borderTopWidth: 1, borderColor: colors.border, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  optionSelected: { borderLeftWidth: 3, borderLeftColor: colors.red, paddingLeft: 10 },
-  check: { color: colors.redBright, fontSize: 13 },
-  input: { minHeight: 46, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: layout.radius, paddingHorizontal: 12, color: colors.white, fontSize: 16, marginBottom: 12 },
-  customRow: { minHeight: 46, borderTopWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  customIndex: { ...type.mono, width: 22, color: colors.textDim },
-  customNote: { flex: 1, color: colors.white, fontSize: 18, fontWeight: '700' },
-  stepButton: { width: 38, height: 36, borderWidth: 1, borderColor: colors.borderStrong, alignItems: 'center', justifyContent: 'center' },
-  calibrationValue: { color: colors.redBright, fontSize: 48, fontWeight: '700', marginBottom: 18 },
+  modalIntro: { marginTop: 8, marginBottom: 16 },
+  modalList: { paddingBottom: 12 },
+  optionRow: { minHeight: 60, borderTopWidth: 1, borderColor: colors.rule, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  optionSelected: { borderLeftWidth: 3, borderLeftColor: colors.accent, paddingLeft: 10 },
+  optionCopy: { flex: 1, minWidth: 0, gap: 2 },
+  instrumentOptionIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.paperSoft, borderWidth: 1, borderColor: colors.ruleStrong, alignItems: 'center', justifyContent: 'center' },
+  instrumentOptionCount: { color: colors.accentBright, fontFamily: 'monospace', fontSize: 12, fontWeight: '800' },
+  selectedText: { color: colors.accentBright },
+  check: { color: colors.accentBright, fontSize: 14 },
+  input: { minHeight: layout.controlHeight, borderWidth: 1, borderColor: colors.ruleStrong, borderRadius: layout.radiusControl, backgroundColor: colors.paper, paddingHorizontal: 12, color: colors.ink, fontSize: 16, marginTop: 6, marginBottom: 12 },
+  customList: { paddingBottom: 14 },
+  customRow: { minHeight: 52, borderTopWidth: 1, borderColor: colors.rule, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  customIndex: { ...type.mono, width: 22, color: colors.neutral },
+  customNote: { flex: 1, color: colors.ink, fontSize: 18, fontWeight: '800' },
+  stepButton: { width: 44, height: 44, borderWidth: 1, borderColor: colors.ruleStrong, borderRadius: layout.radiusControl, alignItems: 'center', justifyContent: 'center' },
+  calibrationValue: { color: colors.accentBright, fontSize: 52, fontWeight: '800', marginBottom: 18 },
+  pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
 });

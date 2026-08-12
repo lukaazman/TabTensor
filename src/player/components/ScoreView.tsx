@@ -37,6 +37,15 @@ type MeasureGeometry = MeasureSpacing & {
   left: number;
 };
 
+type MeasureRenderData = {
+  measure: PlaybackMeasure;
+  notes: PlaybackNote[];
+  geometry: MeasureGeometry;
+  layouts: NoteLayout[];
+  staffRelations: Relation[];
+  tabRelations: Relation[];
+};
+
 type Relation = {
   kind: 'slur' | 'bend' | 'slide' | 'vibrato' | 'sustain' | 'mute';
   layer: 'staff' | 'tab';
@@ -46,13 +55,19 @@ type Relation = {
 };
 
 export function ScoreView({ song, track, position, onSeek }: { song: GuitarProSong; track: PlaybackTrack; position: number; onSeek: (position: number) => void }) {
+  const showTablature = song.capabilities.tablature && track.tablature !== false;
   const scrollRef = useRef<ScrollView | null>(null);
   const previousMeasureRef = useRef(-1);
   const [viewportWidth, setViewportWidth] = useState(1);
+  const [scrollLeft, setScrollLeft] = useState(0);
 
   const notesByMeasure = useMemo(() => {
     const map = new Map<number, typeof track.notes>();
-    track.notes.forEach((note) => map.set(note.measureIndex, [...(map.get(note.measureIndex) ?? []), note]));
+    track.notes.forEach((note) => {
+      const measureNotes = map.get(note.measureIndex);
+      if (measureNotes) measureNotes.push(note);
+      else map.set(note.measureIndex, [note]);
+    });
     return map;
   }, [track.notes]);
 
@@ -70,6 +85,39 @@ export function ScoreView({ song, track, position, onSeek }: { song: GuitarProSo
     viewportWidth,
     measureGeometries.reduce((right, geometry) => Math.max(right, geometry.left + geometry.width), BASE_MEASURE_WIDTH),
   );
+
+  const visibleMeasureRange = useMemo(() => {
+    if (!measureGeometries.length) return { start: 0, end: 0 };
+    const windowStart = Math.max(0, scrollLeft - viewportWidth);
+    const windowEnd = scrollLeft + viewportWidth * 2;
+    let start = 0;
+    while (
+      start < measureGeometries.length - 1
+      && measureGeometries[start].left + measureGeometries[start].width < windowStart
+    ) {
+      start += 1;
+    }
+    let end = start;
+    while (end < measureGeometries.length && measureGeometries[end].left <= windowEnd) end += 1;
+    return { start, end: Math.max(start + 1, end) };
+  }, [measureGeometries, scrollLeft, viewportWidth]);
+
+  const visibleMeasureData = useMemo(() => {
+    return song.measures.slice(visibleMeasureRange.start, visibleMeasureRange.end).flatMap((measure) => {
+      const geometry = measureGeometries.find((item) => item.index === measure.index);
+      if (!geometry) return [];
+      const notes = notesByMeasure.get(measure.index) ?? [];
+      const relations = buildRelations(notes, measure, geometry);
+      return [{
+        measure,
+        notes,
+        geometry,
+        layouts: notes.map((note) => layoutForNote(note, measure, geometry)),
+        staffRelations: relations.filter((relation) => relation.layer === 'staff'),
+        tabRelations: relations.filter((relation) => relation.layer === 'tab'),
+      }];
+    });
+  }, [measureGeometries, notesByMeasure, song.measures, visibleMeasureRange]);
 
   const currentMeasure = useMemo(() => {
     const matching = song.measures.find((measure) => position >= measure.start && position < measure.start + measure.duration);
@@ -91,7 +139,7 @@ export function ScoreView({ song, track, position, onSeek }: { song: GuitarProSo
     <View style={styles.wrap}>
       <View style={styles.scoreHeader}>
         <View>
-          <Text style={type.section}>TAB PLAYER</Text>
+          <Text style={type.section}>{showTablature ? 'TAB PLAYER' : 'SCORE PLAYER'}</Text>
           <Text style={styles.trackName}>{track.name}</Text>
         </View>
         <View style={styles.timeReadout}>
@@ -101,14 +149,16 @@ export function ScoreView({ song, track, position, onSeek }: { song: GuitarProSo
       </View>
 
       <View onLayout={(event) => setViewportWidth(event.nativeEvent.layout.width)} style={styles.viewport}>
-        <ScrollView ref={scrollRef} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.content}>
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          scrollEventThrottle={64}
+          onScroll={(event) => setScrollLeft(event.nativeEvent.contentOffset.x)}
+          contentContainerStyle={styles.content}
+        >
           <View style={[styles.timeline, { width: timelineWidth }]}>
-            {song.measures.map((measure) => {
-              const notes = notesByMeasure.get(measure.index) ?? [];
-              const geometry = measureGeometries.find((item) => item.index === measure.index);
-              if (!geometry) return null;
-              const layouts = notes.map((note) => layoutForNote(note, measure, geometry));
-              const relations = buildRelations(notes, measure, geometry);
+            {visibleMeasureData.map(({ measure, notes, geometry, layouts, staffRelations, tabRelations }) => {
               const active = currentMeasure?.index === measure.index;
               return (
                 <Pressable
@@ -126,15 +176,30 @@ export function ScoreView({ song, track, position, onSeek }: { song: GuitarProSo
                   <View pointerEvents="none" style={styles.staffArea}>
                     {[0, 1, 2, 3, 4].map((line) => <View key={line} style={[styles.staffLine, { top: STAFF_LINE_TOP + line * STAFF_LINE_GAP }]} />)}
                     {measure.beats.map((beat) => renderBeatOverlay(beat, measure, geometry, notes))}
-                    {relations.filter((relation) => relation.layer === 'staff').map((relation, index) => <RelationMark key={`staff-${relation.kind}-${index}`} relation={relation} />)}
+                    {staffRelations.map((relation, index) => <RelationMark key={`staff-${relation.kind}-${index}`} relation={relation} />)}
                     {layouts.map((layout) => <StaffNote key={`staff-${layout.note.id}`} layout={layout} position={position} />)}
                   </View>
 
-                  <View pointerEvents="none" style={styles.tabArea}>
-                    {[0, 1, 2, 3, 4, 5].map((line) => <View key={line} style={[styles.tabLine, { top: TAB_LINE_TOP + line * TAB_LINE_GAP }]} />)}
-                    {relations.filter((relation) => relation.layer === 'tab').map((relation, index) => <RelationMark key={`tab-${relation.kind}-${index}`} relation={relation} />)}
-                    {layouts.map((layout) => <TabNote key={`tab-${layout.note.id}`} layout={layout} position={position} />)}
-                  </View>
+                  {showTablature ? (
+                    <View pointerEvents="none" style={styles.tabArea}>
+                      {[0, 1, 2, 3, 4, 5].map((line) => <View key={line} style={[styles.tabLine, { top: TAB_LINE_TOP + line * TAB_LINE_GAP }]} />)}
+                      {tabRelations.map((relation, index) => <RelationMark key={`tab-${relation.kind}-${index}`} relation={relation} />)}
+                      {layouts.map((layout) => <TabNote key={`tab-${layout.note.id}`} layout={layout} position={position} />)}
+                    </View>
+                  ) : (
+                    <View pointerEvents="none" style={styles.scoreOnlyFooter}>
+                      <Text style={styles.scoreOnlyText}>STAFF NOTATION · {song.format}</Text>
+                      {song.capabilities.lyrics ? <Text style={styles.scoreOnlyText}>LYRICS</Text> : null}
+                    </View>
+                  )}
+
+                  {song.capabilities.lyrics ? (
+                    <View pointerEvents="none" style={styles.lyricLane}>
+                      {layouts.filter((layout) => layout.note.lyric).map((layout) => (
+                        <Text key={`lyric-${layout.note.id}`} style={[styles.lyric, { left: layout.center - 22 }]} numberOfLines={1}>{layout.note.lyric}</Text>
+                      ))}
+                    </View>
+                  ) : null}
 
                   <View pointerEvents="none" style={styles.measureRule} />
                 </Pressable>
@@ -223,31 +288,45 @@ function buildRelations(notes: PlaybackNote[], measure: PlaybackMeasure, spacing
   const sorted = [...notes].sort((a, b) => a.start - b.start);
   const relations: Relation[] = [];
 
-  sorted.forEach((note) => {
-    const next = sorted.find((candidate) => candidate.stringNumber === note.stringNumber && candidate.start > note.start + 0.001);
-    const start = layoutForNote(note, measure, spacing);
-    const end = next ? layoutForNote(next, measure, spacing) : null;
-    const width = end ? Math.max(10, end.center - start.center) : Math.max(12, spacing.width - start.center - MEASURE_HORIZONTAL_PADDING);
+  const nextByString = new Map<number, PlaybackNote>();
+  let index = sorted.length - 1;
+  while (index >= 0) {
+    const groupEnd = index;
+    const groupStartTime = sorted[index].start;
+    while (index >= 0 && Math.abs(sorted[index].start - groupStartTime) <= 0.001) index -= 1;
 
-    if (note.techniques.includes('hammer-on') || note.techniques.includes('pull-off') || note.techniques.includes('tie')) {
-      relations.push({ kind: 'slur', layer: 'staff', left: start.center, width, top: Math.min(start.staffTop, end?.staffTop ?? start.staffTop) - 14 });
+    for (let groupIndex = groupEnd; groupIndex > index; groupIndex -= 1) {
+      const note = sorted[groupIndex];
+      const next = nextByString.get(note.stringNumber);
+      const start = layoutForNote(note, measure, spacing);
+      const end = next ? layoutForNote(next, measure, spacing) : null;
+      const width = end ? Math.max(10, end.center - start.center) : Math.max(12, spacing.width - start.center - MEASURE_HORIZONTAL_PADDING);
+
+      if (note.techniques.includes('hammer-on') || note.techniques.includes('pull-off') || note.techniques.includes('tie')) {
+        relations.push({ kind: 'slur', layer: 'staff', left: start.center, width, top: Math.min(start.staffTop, end?.staffTop ?? start.staffTop) - 14 });
+      }
+      if (note.techniques.includes('bend')) {
+        relations.push({ kind: 'bend', layer: 'staff', left: start.center, width, top: Math.min(start.staffTop, end?.staffTop ?? start.staffTop) - 26 });
+      }
+      if (note.techniques.includes('vibrato')) {
+        relations.push({ kind: 'vibrato', layer: 'staff', left: start.center, width, top: Math.min(start.staffTop, end?.staffTop ?? start.staffTop) - 22 });
+      }
+      if (note.techniques.includes('slide')) {
+        relations.push({ kind: 'slide', layer: 'tab', left: start.center, width, top: start.tabLine - 11 });
+      }
+      if (note.techniques.includes('let-ring')) {
+        relations.push({ kind: 'sustain', layer: 'tab', left: start.center, width, top: start.tabLine + 9 });
+      }
+      if (note.techniques.includes('palm-mute')) {
+        relations.push({ kind: 'mute', layer: 'tab', left: start.center - 2, width: Math.min(width, 28), top: start.tabLine - 15 });
+      }
     }
-    if (note.techniques.includes('bend')) {
-      relations.push({ kind: 'bend', layer: 'staff', left: start.center, width, top: Math.min(start.staffTop, end?.staffTop ?? start.staffTop) - 26 });
+
+    for (let groupIndex = index + 1; groupIndex <= groupEnd; groupIndex += 1) {
+      const note = sorted[groupIndex];
+      nextByString.set(note.stringNumber, note);
     }
-    if (note.techniques.includes('vibrato')) {
-      relations.push({ kind: 'vibrato', layer: 'staff', left: start.center, width, top: Math.min(start.staffTop, end?.staffTop ?? start.staffTop) - 22 });
-    }
-    if (note.techniques.includes('slide')) {
-      relations.push({ kind: 'slide', layer: 'tab', left: start.center, width, top: start.tabLine - 11 });
-    }
-    if (note.techniques.includes('let-ring')) {
-      relations.push({ kind: 'sustain', layer: 'tab', left: start.center, width, top: start.tabLine + 9 });
-    }
-    if (note.techniques.includes('palm-mute')) {
-      relations.push({ kind: 'mute', layer: 'tab', left: start.center - 2, width: Math.min(width, 28), top: start.tabLine - 15 });
-    }
-  });
+  }
 
   return relations;
 }
@@ -286,6 +365,7 @@ function StaffNote({ layout, position }: { layout: NoteLayout; position: number 
       <View style={[styles.noteHead, playing && styles.noteHeadPlaying]} />
       <View style={[styles.noteStem, playing && styles.noteStemPlaying]} />
       {layout.note.duration < 0.5 ? <View style={[styles.noteFlag, playing && styles.noteStemPlaying]} /> : null}
+      {layout.note.dynamic ? <Text style={styles.dynamic}>{layout.note.dynamic}</Text> : null}
     </View>
   );
 }
@@ -325,55 +405,60 @@ function RelationMark({ relation }: { relation: Relation }) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { backgroundColor: colors.panel, borderWidth: 1, borderColor: colors.border, marginTop: 14, overflow: 'hidden' },
-  scoreHeader: { paddingHorizontal: 14, paddingTop: 13, paddingBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  trackName: { color: colors.textMuted, fontSize: 12, marginTop: 3 },
+  wrap: { backgroundColor: colors.paperRaised, borderWidth: 1, borderColor: colors.rule, borderRadius: 16, marginTop: 14, overflow: 'hidden' },
+  scoreHeader: { paddingHorizontal: 16, paddingTop: 15, paddingBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  trackName: { color: colors.muted, fontSize: 12, marginTop: 3 },
   timeReadout: { flexDirection: 'row', alignItems: 'baseline' },
-  currentTime: { color: colors.white, fontSize: 16, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  viewport: { height: SCORE_HEIGHT, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.border, backgroundColor: colors.panelRaised },
+  currentTime: { color: colors.ink, fontSize: 16, fontWeight: '800', fontVariant: ['tabular-nums'] },
+  viewport: { height: SCORE_HEIGHT, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.rule, backgroundColor: colors.paper },
   content: { paddingHorizontal: 14 },
   timeline: { height: SCORE_HEIGHT, position: 'relative' },
-  measure: { position: 'absolute', top: 0, bottom: 0, borderRightWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.panelRaised },
-  measureActive: { backgroundColor: '#241616' },
+  measure: { position: 'absolute', top: 0, bottom: 0, borderRightWidth: 1, borderColor: colors.ruleStrong, backgroundColor: colors.paper },
+  measureActive: { backgroundColor: colors.accentWash },
   measureHeader: { height: 28, paddingHorizontal: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  measureRule: { position: 'absolute', top: 0, bottom: 0, right: -1, width: 1, backgroundColor: colors.borderStrong },
+  measureRule: { position: 'absolute', top: 0, bottom: 0, right: -1, width: 1, backgroundColor: colors.ruleStrong },
   staffArea: { position: 'absolute', left: 8, right: 8, top: 0, height: STAFF_AREA_HEIGHT },
-  staffLine: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: colors.borderStrong },
+  staffLine: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: colors.ruleStrong },
   staffNote: { position: 'absolute', width: 12, height: 16, zIndex: 3 },
-  noteHead: { position: 'absolute', top: 4, left: 1, width: 9, height: 6, borderRadius: 6, backgroundColor: colors.white, transform: [{ rotate: '-18deg' }] },
-  noteHeadPlaying: { backgroundColor: colors.redBright },
-  noteStem: { position: 'absolute', top: -4, right: 1, width: 1, height: 12, backgroundColor: colors.white },
-  noteStemPlaying: { backgroundColor: colors.redBright },
-  noteFlag: { position: 'absolute', top: -4, right: -2, width: 6, height: 4, borderTopWidth: 1, borderRightWidth: 1, borderTopRightRadius: 5, borderColor: colors.white, transform: [{ rotate: '18deg' }] },
+  noteHead: { position: 'absolute', top: 4, left: 1, width: 9, height: 6, borderRadius: 6, backgroundColor: colors.ink, transform: [{ rotate: '-18deg' }] },
+  noteHeadPlaying: { backgroundColor: colors.accentBright },
+  noteStem: { position: 'absolute', top: -4, right: 1, width: 1, height: 12, backgroundColor: colors.ink },
+  noteStemPlaying: { backgroundColor: colors.accentBright },
+  noteFlag: { position: 'absolute', top: -4, right: -2, width: 6, height: 4, borderTopWidth: 1, borderRightWidth: 1, borderTopRightRadius: 5, borderColor: colors.ink, transform: [{ rotate: '18deg' }] },
   tabArea: { position: 'absolute', left: 8, right: 8, top: TAB_AREA_TOP, height: SCORE_HEIGHT - TAB_AREA_TOP },
-  tabLine: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: colors.borderStrong },
-  tabNote: { position: 'absolute', width: NOTE_WIDTH, height: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.panelRaised, zIndex: 4 },
-  tabNotePlaying: { backgroundColor: colors.red, borderRadius: 2, transform: [{ scale: 1.08 }] },
-  harmonicNote: { borderWidth: 1, borderColor: colors.textMuted, borderRadius: NOTE_WIDTH / 2 },
-  fret: { color: colors.white, fontSize: 13, lineHeight: 14, fontWeight: '700' },
-  playingText: { color: colors.black },
-  accentMark: { position: 'absolute', top: -6, width: 0, height: 0, borderLeftWidth: 3, borderRightWidth: 3, borderBottomWidth: 4, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: colors.redBright },
-  playingAccent: { borderBottomColor: colors.black },
+  scoreOnlyFooter: { position: 'absolute', left: 8, right: 8, top: TAB_AREA_TOP + 16, height: SCORE_HEIGHT - TAB_AREA_TOP - 16, borderTopWidth: 1, borderColor: colors.rule, alignItems: 'center', justifyContent: 'center', gap: 8 },
+  scoreOnlyText: { color: colors.muted, fontSize: 10, fontWeight: '800', letterSpacing: 1.1 },
+  lyricLane: { position: 'absolute', left: 8, right: 8, bottom: 8, height: 28, zIndex: 6 },
+  lyric: { position: 'absolute', width: 44, color: colors.muted, fontSize: 10, lineHeight: 14, textAlign: 'center' },
+  dynamic: { position: 'absolute', left: -6, top: -18, color: colors.accentBright, fontSize: 9, fontStyle: 'italic', fontWeight: '800' },
+  tabLine: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: colors.ruleStrong },
+  tabNote: { position: 'absolute', width: NOTE_WIDTH, height: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.paper, zIndex: 4 },
+  tabNotePlaying: { backgroundColor: colors.accent, borderRadius: 4, transform: [{ scale: 1.08 }] },
+  harmonicNote: { borderWidth: 1, borderColor: colors.muted, borderRadius: NOTE_WIDTH / 2 },
+  fret: { color: colors.ink, fontSize: 13, lineHeight: 14, fontWeight: '800' },
+  playingText: { color: colors.accentInk },
+  accentMark: { position: 'absolute', top: -6, width: 0, height: 0, borderLeftWidth: 3, borderRightWidth: 3, borderBottomWidth: 4, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: colors.accentBright },
+  playingAccent: { borderBottomColor: colors.accentInk },
   restWrap: { position: 'absolute', top: 72, width: 28, alignItems: 'center', zIndex: 2 },
   restIcon: { width: 18, height: 28, position: 'relative' },
-  restStrokeOne: { position: 'absolute', top: 3, left: 6, width: 9, height: 2, backgroundColor: colors.textMuted, transform: [{ rotate: '35deg' }] },
-  restStrokeTwo: { position: 'absolute', top: 10, left: 3, width: 10, height: 2, backgroundColor: colors.textMuted, transform: [{ rotate: '-35deg' }] },
-  restStrokeThree: { position: 'absolute', top: 17, left: 6, width: 9, height: 2, backgroundColor: colors.textMuted, transform: [{ rotate: '35deg' }] },
-  restDot: { position: 'absolute', bottom: 1, left: 8, width: 3, height: 3, borderRadius: 3, backgroundColor: colors.textMuted },
-  rhythmMark: { position: 'absolute', top: 35, color: colors.textDim, fontSize: 8, lineHeight: 9, fontWeight: '700' },
-  rhythmDot: { position: 'absolute', top: 38, width: 3, height: 3, borderRadius: 3, backgroundColor: colors.textDim },
+  restStrokeOne: { position: 'absolute', top: 3, left: 6, width: 9, height: 2, backgroundColor: colors.muted, transform: [{ rotate: '35deg' }] },
+  restStrokeTwo: { position: 'absolute', top: 10, left: 3, width: 10, height: 2, backgroundColor: colors.muted, transform: [{ rotate: '-35deg' }] },
+  restStrokeThree: { position: 'absolute', top: 17, left: 6, width: 9, height: 2, backgroundColor: colors.muted, transform: [{ rotate: '35deg' }] },
+  restDot: { position: 'absolute', bottom: 1, left: 8, width: 3, height: 3, borderRadius: 3, backgroundColor: colors.muted },
+  rhythmMark: { position: 'absolute', top: 35, color: colors.neutral, fontSize: 8, lineHeight: 9, fontWeight: '700' },
+  rhythmDot: { position: 'absolute', top: 38, width: 3, height: 3, borderRadius: 3, backgroundColor: colors.neutral },
   relation: { position: 'absolute', height: 18, zIndex: 2 },
-  slur: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 11, borderTopWidth: 1, borderTopLeftRadius: 11, borderTopRightRadius: 11, borderTopColor: colors.textMuted },
-  bendSlur: { borderTopColor: colors.redBright },
-  slideLine: { position: 'absolute', left: 0, right: 0, top: 8, height: 1, backgroundColor: colors.textMuted, transform: [{ rotate: '-14deg' }] },
-  slideArrow: { position: 'absolute', right: -1, top: 5, width: 5, height: 5, borderRightWidth: 1, borderTopWidth: 1, borderColor: colors.textMuted, transform: [{ rotate: '45deg' }] },
-  bendArrow: { position: 'absolute', right: -1, top: 4, width: 5, height: 5, borderRightWidth: 1, borderTopWidth: 1, borderColor: colors.redBright, transform: [{ rotate: '45deg' }] },
-  sustain: { height: 1, borderTopWidth: 1, borderStyle: 'dashed', borderTopColor: colors.textMuted },
-  muteLine: { height: 1, borderTopWidth: 1, borderTopColor: colors.redBright },
-  vibratoStroke: { position: 'absolute', top: 8, width: 6, height: 1, backgroundColor: colors.textMuted },
-  playhead: { position: 'absolute', top: 0, bottom: 0, width: 2, backgroundColor: colors.redBright, zIndex: 8 },
-  playheadCap: { position: 'absolute', top: 0, left: -5, width: 12, height: 7, backgroundColor: colors.redBright },
-  scoreFooter: { paddingHorizontal: 14, paddingVertical: 7, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' },
-  activeText: { color: colors.redBright },
-  measureReadout: { color: colors.redBright },
+  slur: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 11, borderTopWidth: 1, borderTopLeftRadius: 11, borderTopRightRadius: 11, borderTopColor: colors.muted },
+  bendSlur: { borderTopColor: colors.accentBright },
+  slideLine: { position: 'absolute', left: 0, right: 0, top: 8, height: 1, backgroundColor: colors.muted, transform: [{ rotate: '-14deg' }] },
+  slideArrow: { position: 'absolute', right: -1, top: 5, width: 5, height: 5, borderRightWidth: 1, borderTopWidth: 1, borderColor: colors.muted, transform: [{ rotate: '45deg' }] },
+  bendArrow: { position: 'absolute', right: -1, top: 4, width: 5, height: 5, borderRightWidth: 1, borderTopWidth: 1, borderColor: colors.accentBright, transform: [{ rotate: '45deg' }] },
+  sustain: { height: 1, borderTopWidth: 1, borderStyle: 'dashed', borderTopColor: colors.muted },
+  muteLine: { height: 1, borderTopWidth: 1, borderTopColor: colors.accentBright },
+  vibratoStroke: { position: 'absolute', top: 8, width: 6, height: 1, backgroundColor: colors.muted },
+  playhead: { position: 'absolute', top: 0, bottom: 0, width: 2, backgroundColor: colors.accentBright, zIndex: 8 },
+  playheadCap: { position: 'absolute', top: 0, left: -5, width: 12, height: 7, backgroundColor: colors.accentBright },
+  scoreFooter: { paddingHorizontal: 16, paddingVertical: 8, flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center' },
+  activeText: { color: colors.accentBright },
+  measureReadout: { color: colors.accentBright },
 });

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { TunerDetection, TunerPreferences } from '@/types';
 import { loadTunerPreferences, saveTunerPreferences } from '@/storage/preferences';
-import { findTuning } from '../tunings';
+import { defaultTuningForInstrument, findTuning } from '../tunings';
 import { centsBetween, foldToTargets, frequencyForNote, nearestTarget } from '../pitch';
 import { createPitchEngine } from '../audio/NativePitchEngine';
 import { PitchEngine } from '../audio/PitchEngine';
@@ -9,6 +9,7 @@ import { PitchEngine } from '../audio/PitchEngine';
 type TunerStatus = 'loading' | 'listening' | 'denied' | 'unavailable' | 'error';
 
 const EMPTY_PREFERENCES: TunerPreferences = {
+  instrumentId: 'acoustic-guitar',
   tuningId: 'standard',
   customTunings: [],
   autoMode: true,
@@ -29,8 +30,8 @@ export function useTuner() {
   const stringCandidateRef = useRef<{ index: number; count: number } | null>(null);
 
   const tuning = useMemo(
-    () => findTuning(preferences.tuningId, preferences.customTunings),
-    [preferences.customTunings, preferences.tuningId],
+    () => findTuning(preferences.tuningId, preferences.customTunings, preferences.instrumentId),
+    [preferences.customTunings, preferences.instrumentId, preferences.tuningId],
   );
   const targetFrequencies = useMemo(
     () => tuning.strings.map((note) => frequencyForNote(note, preferences.calibration)),
@@ -112,7 +113,7 @@ export function useTuner() {
       void engine.stop();
       engineRef.current = null;
     };
-  }, [preferences.autoMode, preferences.manualStringIndex, preferencesReady, retryToken, targetFrequencies, tuning.strings]);
+  }, [preferences.autoMode, preferences.instrumentId, preferences.manualStringIndex, preferencesReady, retryToken, targetFrequencies, tuning.strings]);
 
   const updatePreferences = useCallback((next: Partial<TunerPreferences>) => {
     setPreferences((current) => {
@@ -135,9 +136,17 @@ export function useTuner() {
   }, [preferences.autoMode, updatePreferences]);
 
   const setTuning = useCallback((tuningId: TunerPreferences['tuningId']) => {
-    updatePreferences({ tuningId });
+    updatePreferences({ tuningId, manualStringIndex: 0 });
     smoothingRef.current = null;
     lockedStringRef.current = null;
+  }, [updatePreferences]);
+
+  const setInstrument = useCallback((instrumentId: TunerPreferences['instrumentId']) => {
+    const defaultTuning = defaultTuningForInstrument(instrumentId);
+    updatePreferences({ instrumentId, tuningId: defaultTuning.id, manualStringIndex: 0 });
+    smoothingRef.current = null;
+    lockedStringRef.current = null;
+    stringCandidateRef.current = null;
   }, [updatePreferences]);
 
   const retry = useCallback(() => {
@@ -157,6 +166,7 @@ export function useTuner() {
     selectString,
     toggleAuto,
     setTuning,
+    setInstrument,
     retry,
   };
 }

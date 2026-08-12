@@ -16,11 +16,13 @@ export function ActionButton({ children, onPress, variant = 'secondary', disable
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled: Boolean(disabled || loading), busy: Boolean(loading) }}
       disabled={disabled || loading}
       onPress={onPress}
+      hitSlop={4}
       style={({ pressed }) => [styles.base, styles[variant], pressed && styles.pressed, (disabled || loading) && styles.disabled, style]}
     >
-      {loading ? <ActivityIndicator color={variant === 'primary' ? colors.black : colors.white} /> : <Text style={[styles.label, variant === 'primary' && styles.primaryLabel]}>{children}</Text>}
+      {loading ? <ActivityIndicator color={variant === 'primary' ? colors.accentInk : colors.ink} /> : <Text numberOfLines={1} style={[styles.label, variant === 'primary' && styles.primaryLabel, variant === 'quiet' && styles.quietLabel]}>{children}</Text>}
     </Pressable>
   );
 }
@@ -29,17 +31,18 @@ const styles = StyleSheet.create({
   base: {
     minHeight: layout.controlHeight,
     paddingHorizontal: 16,
-    borderRadius: layout.radius,
+    borderRadius: layout.radiusControl,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
   },
-  primary: { backgroundColor: colors.red, borderColor: colors.red },
-  secondary: { backgroundColor: colors.panelRaised, borderColor: colors.borderStrong },
-  quiet: { backgroundColor: 'transparent', borderColor: colors.border },
-  danger: { backgroundColor: colors.redDim, borderColor: colors.red },
-  label: { ...type.body, fontWeight: '700' },
-  primaryLabel: { color: colors.black },
-  pressed: { opacity: 0.72 },
-  disabled: { opacity: 0.42 },
+  primary: { backgroundColor: colors.accent, borderColor: colors.accent },
+  secondary: { backgroundColor: colors.paperSoft, borderColor: colors.ruleStrong },
+  quiet: { backgroundColor: 'transparent', borderColor: colors.rule },
+  danger: { backgroundColor: colors.accentWash, borderColor: colors.accent },
+  label: { ...type.body, color: colors.ink, fontWeight: '800', fontSize: 13, letterSpacing: 0.7 },
+  primaryLabel: { color: colors.accentInk },
+  quietLabel: { color: colors.inkMuted },
+  pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
+  disabled: { opacity: 0.45 },
 });
