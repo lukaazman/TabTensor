@@ -1,0 +1,11 @@
+{
+  "date": "2026-08-12",
+  "project": "TabTensor",
+  "framework": "Expo 57 + React Native 0.86.2 + TypeScript",
+  "fontStack": "platform sans for display/body + platform monospace for technical values",
+  "palette": "existing dark graphite + off-white + red identity; normalized into semantic Forge tokens",
+  "motion": "react-native-reanimated is installed, but this redesign keeps motion-cut behavior with tactile press feedback and native modal fade",
+  "spacing": "new 4-point semantic scale mirrored in src/theme.ts and tokens.css",
+  "preserve": ["tuner logic", "file picker and recent-file storage", "Guitar Pro parser", "native playback abstraction", "score geometry", "safe-area handling"],
+  "introduce": ["Workbench app structure", "locked design.md", "semantic theme tokens", "compact mode dock", "clearer live readout hierarchy", "mobile-safe string grid"]
+}

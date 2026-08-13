@@ -1,0 +1,12 @@
+[
+  {
+    "date": "2026-08-12",
+    "scope": "app",
+    "macrostructure": "Workbench",
+    "theme": "TabTensor Forge",
+    "enrichment": "none",
+    "nav": "bottom mode dock",
+    "footer": "none — functional app surface",
+    "brief": "TabTensor app redesign: tuner, player, playback"
+  }
+]
