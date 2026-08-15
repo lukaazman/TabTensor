@@ -1,6 +1,7 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, type } from '@/theme';
+import { colors, layout, type } from '@/theme';
 
 export function TunerGauge({ cents, active }: { cents?: number; active: boolean }) {
   const clamped = Math.min(50, Math.max(-50, cents ?? 0));
@@ -21,7 +22,7 @@ export function TunerGauge({ cents, active }: { cents?: number; active: boolean 
 const styles = StyleSheet.create({
   wrap: { gap: 9 },
   labels: { flexDirection: 'row', justifyContent: 'space-between' },
-  scale: { height: 40, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.rule, borderRadius: 8, justifyContent: 'center', position: 'relative' },
+  scale: { height: 40, backgroundColor: colors.paperRaised, borderWidth: 1, borderColor: colors.rule, borderRadius: layout.radiusControl, justifyContent: 'center', position: 'relative' },
   centerLine: { position: 'absolute', top: 0, bottom: 0, left: '50%', width: 1, backgroundColor: colors.ink, opacity: 0.65 },
   needle: { position: 'absolute', top: 4, bottom: 4, width: 2, marginLeft: -1, backgroundColor: colors.neutral },
   needleActive: { backgroundColor: colors.accentBright, width: 3, marginLeft: -1.5 },

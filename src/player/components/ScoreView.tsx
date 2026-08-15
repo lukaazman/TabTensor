@@ -1,3 +1,4 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, type } from '@/theme';
@@ -143,7 +144,7 @@ export function ScoreView({ song, track, position, onSeek, scrollToken = 0 }: { 
     <View style={styles.wrap}>
       <View style={styles.scoreHeader}>
         <View>
-          <Text style={type.section}>{showTablature ? 'TAB PLAYER' : 'SCORE PLAYER'}</Text>
+          <Text style={type.section}>{showTablature ? 'Tab player' : 'Score player'}</Text>
           <Text style={styles.trackName}>{track.name}</Text>
         </View>
         <View style={styles.timeReadout}>
@@ -192,8 +193,8 @@ export function ScoreView({ song, track, position, onSeek, scrollToken = 0 }: { 
                     </View>
                   ) : (
                     <View pointerEvents="none" style={styles.scoreOnlyFooter}>
-                      <Text style={styles.scoreOnlyText}>STAFF NOTATION · {song.format}</Text>
-                      {song.capabilities.lyrics ? <Text style={styles.scoreOnlyText}>LYRICS</Text> : null}
+                        <Text style={styles.scoreOnlyText}>Staff notation · {song.format}</Text>
+                        {song.capabilities.lyrics ? <Text style={styles.scoreOnlyText}>Lyrics</Text> : null}
                     </View>
                   )}
 

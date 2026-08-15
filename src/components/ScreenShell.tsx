@@ -1,3 +1,4 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import React, { PropsWithChildren } from 'react';
 import { ScrollView, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,5 +31,5 @@ export function ScreenShell({ children, scroll = true, contentStyle }: Props) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.paper },
   flex: { flex: 1 },
-  content: { paddingHorizontal: layout.screenPadding, paddingTop: layout.screenTopPadding, paddingBottom: 36 },
+  content: { paddingHorizontal: layout.screenPadding, paddingTop: layout.screenTopPadding, paddingBottom: 40 },
 });

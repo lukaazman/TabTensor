@@ -1,3 +1,4 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
@@ -62,20 +63,20 @@ export function PlaybackScreen({ song, onBack }: { song: GuitarProSong; onBack: 
       <View style={styles.topBar}>
         <Pressable accessibilityRole="button" accessibilityLabel="Back to player files" onPress={onBack} style={styles.back}>
           <Text style={styles.backIcon}>{'‹'}</Text>
-          <Text style={type.section}>FILES</Text>
+          <Text style={type.section}>Files</Text>
         </Pressable>
         <View style={styles.formatChip}><Text style={type.mono}>{song.format}</Text></View>
       </View>
 
       <View style={styles.titleBlock}>
-        <Text style={[type.section, styles.nowPlaying]}>NOW PLAYING</Text>
+        <Text style={[type.section, styles.nowPlaying]}>Now playing</Text>
         <Text style={styles.title} numberOfLines={2}>{song.title}</Text>
         <View style={styles.songMeta}><Text style={type.caption}>{song.artist || 'Unknown artist'}</Text><Text style={type.mono}>{song.tempo} BPM{song.timeSignature ? ` · ${song.timeSignature}` : ''}</Text></View>
       </View>
 
       {song.formatKind !== 'guitar-pro' ? (
         <View style={styles.formatNote}>
-          <Text style={[type.section, styles.formatNoteTitle]}>{song.formatKind === 'musicxml' ? 'MUSICXML SCORE' : 'MIDI SEQUENCE'}</Text>
+          <Text style={[type.section, styles.formatNoteTitle]}>{song.formatKind === 'musicxml' ? 'MusicXML score' : 'MIDI sequence'}</Text>
           <Text style={type.caption}>
             {song.formatKind === 'musicxml'
               ? 'Staff notation, dynamics, tempo changes and lyrics are kept where the file provides them.'
@@ -86,7 +87,7 @@ export function PlaybackScreen({ song, onBack }: { song: GuitarProSong; onBack: 
 
       {player.snapshot.error ? (
         <View style={styles.error}>
-          <Text style={[type.section, styles.errorTitle]}>PLAYBACK NEEDS NATIVE AUDIO</Text>
+          <Text style={[type.section, styles.errorTitle]}>Playback needs native audio</Text>
           <Text style={type.caption}>{player.snapshot.error}</Text>
         </View>
       ) : null}
@@ -122,14 +123,14 @@ export function PlaybackScreen({ song, onBack }: { song: GuitarProSong; onBack: 
       <View style={styles.mixerPanel}>
         <Pressable accessibilityRole="button" accessibilityLabel={`${tracksOpen ? 'Collapse' : 'Expand'} tracks`} accessibilityState={{ expanded: tracksOpen }} onPress={() => setTracksOpen((current) => !current)} style={styles.panelHeader}>
           <View>
-            <Text style={type.section}>TRACKS</Text>
+            <Text style={type.section}>Tracks</Text>
             <Text style={type.caption}>{selectedTrack?.name ?? 'No track selected'} - {player.snapshot.tracks.length || song.tracks.length} tracks</Text>
           </View>
           <Text style={styles.chevron}>{tracksOpen ? '-' : '+'}</Text>
         </Pressable>
         <View style={styles.master}>
           <RangeSlider
-            label="MASTER VOLUME"
+            label="Master volume"
             valueLabel={`${Math.round(player.snapshot.masterVolume * 100)}%`}
             value={player.snapshot.masterVolume}
             onChange={(value) => void player.setMasterVolume(value)}
@@ -163,7 +164,7 @@ const styles = StyleSheet.create({
   nowPlaying: { color: colors.accentBright },
   title: { color: colors.ink, fontSize: 32, lineHeight: 36, fontWeight: '800', letterSpacing: -1 },
   songMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
-  formatNote: { marginTop: 14, padding: 14, gap: 6, borderLeftWidth: 3, borderLeftColor: colors.accent, backgroundColor: colors.accentWash },
+  formatNote: { marginTop: 14, paddingTop: 13, paddingBottom: 3, gap: 6, borderTopWidth: 1, borderColor: colors.accent, backgroundColor: colors.accentWash },
   formatNoteTitle: { color: colors.accentBright },
   error: { marginTop: 14, padding: 16, gap: 8, borderWidth: 1, borderColor: colors.accent, borderRadius: layout.radiusCard, backgroundColor: colors.accentWash },
   errorTitle: { color: colors.accentBright },

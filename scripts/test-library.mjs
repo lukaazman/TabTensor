@@ -60,7 +60,7 @@ assert.ok(navigation.includes('<LibraryScreen'));
 assert.ok(navigation.includes("setActiveTab('player')"), 'library file opening should land in the player tab');
 
 const tabBar = read('src/components/TabBar.tsx');
-assert.ok(tabBar.includes('label="LIBRARY"'));
+assert.ok(tabBar.includes('label="Library"'));
 const types = read('src/types/index.ts');
 assert.ok(types.includes("AppTab = 'tuner' | 'player' | 'library'"));
 

@@ -1,8 +1,9 @@
-/* Hallmark · genre: modern-minimal · tone: technical · anchor hue: warm red · macrostructure: Workbench */
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import React, { useEffect, useState } from 'react';
 import { DimensionValue, Image, ImageSourcePropType, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import { ActionButton } from '@/components/ActionButton';
+import { AppHeader } from '@/components/AppHeader';
 import { ModalSheet } from '@/components/ModalSheet';
 import { RangeSlider } from '@/components/RangeSlider';
 import { ScreenShell } from '@/components/ScreenShell';
@@ -15,7 +16,6 @@ export function TunerScreen() {
   useKeepAwake('tabtensor-tuner');
   const { width } = useWindowDimensions();
   const compact = width <= 360;
-  const extraCompact = width <= 340;
   const tuner = useTuner();
   const [instrumentPickerVisible, setInstrumentPickerVisible] = useState(false);
   const [tuningPickerVisible, setTuningPickerVisible] = useState(false);
@@ -27,23 +27,20 @@ export function TunerScreen() {
   const selectedIndex = tuner.detection?.stringIndex ?? Math.min(tuner.preferences.manualStringIndex, tuning.strings.length - 1);
   const cents = tuner.detection?.cents ?? 0;
   const inTune = Boolean(tuner.detection && Math.abs(cents) <= 5);
-  const statusText = !tuner.detection ? 'PLAY A STRING' : inTune ? 'ON TARGET' : cents > 0 ? 'TUNE DOWN' : 'TUNE UP';
+  const statusText = !tuner.detection ? 'Play a string' : inTune ? 'On target' : cents > 0 ? 'Tune down' : 'Tune up';
   const statusColor = !tuner.detection ? colors.muted : inTune ? colors.success : colors.accentBright;
   const targetNote = tuner.detection?.targetNote ?? tuning.strings[selectedIndex] ?? tuning.strings[0];
 
   return (
     <ScreenShell contentStyle={styles.screenContent}>
-      <View style={styles.brandRow}>
-        <View style={styles.brandLockup}><View style={styles.brandMark} /><Text style={styles.brand}>TABTENSOR</Text></View>
-        <View style={styles.localChip}><View style={styles.localDot} /><Text style={type.mono}>LOCAL</Text></View>
-      </View>
+      <AppHeader />
 
       <View style={styles.pageHeading}>
         <View style={styles.pageHeadingCopy}>
-          <View style={styles.eyebrowRow}><View style={styles.eyebrowMark} /><Text style={type.section}>01 / TUNER</Text></View>
           <Text style={type.screenTitle}>Tune</Text>
+          <Text style={[type.caption, styles.headingDetail]}>{instrument.shortName} · {tuning.shortName}</Text>
         </View>
-        <Text style={[type.mono, styles.calibrationLabel]}>A4 {tuner.preferences.calibration} HZ</Text>
+        <View style={styles.statusPill}><View style={[styles.statusDot, tuner.detection && styles.statusDotActive]} /><Text style={[type.mono, styles.statusPillText, { color: statusColor }]}>{statusText}</Text></View>
       </View>
 
       <View style={[styles.selectionRow, compact && styles.selectionRowCompact]}>
@@ -55,9 +52,9 @@ export function TunerScreen() {
         >
           <View style={styles.triggerIcon}><Text style={styles.triggerIconText}>{instrument.stringCount}</Text></View>
           <View style={styles.triggerCopy}>
-            <Text style={type.caption}>INSTRUMENT · {instrument.family.toUpperCase()}</Text>
+            <Text style={type.caption}>{instrument.family}</Text>
             <Text numberOfLines={1} style={styles.triggerTitle}>{instrument.name}</Text>
-            <Text numberOfLines={1} style={[type.mono, styles.triggerDetail]}>{tuning.name} · {instrument.stringCount} STRINGS</Text>
+            <Text numberOfLines={1} style={[type.mono, styles.triggerDetail]}>{tuning.name} · {instrument.stringCount} strings</Text>
           </View>
           <Text style={styles.chevron}>⌄</Text>
         </Pressable>
@@ -82,36 +79,36 @@ export function TunerScreen() {
 
         <View style={styles.surfaceBottomline}>
           <View style={styles.bottomReadout}>
-            <Text style={type.caption}>TARGET STRING {String(selectedIndex + 1).padStart(2, '0')} / {String(tuning.strings.length).padStart(2, '0')}</Text>
+            <Text style={type.caption}>String {selectedIndex + 1} of {tuning.strings.length}</Text>
             <Text style={styles.targetNote}>{targetNote}</Text>
           </View>
           <View style={styles.bottomReadoutRight}>
             <Text style={[type.mono, styles.centsReadout, { color: statusColor }]}>{tuner.detection ? `${cents > 0 ? '+' : ''}${cents.toFixed(1)}¢` : '—¢'}</Text>
-            <Text style={[type.mono, styles.frequencyReadout]}>{tuner.detection ? `${tuner.detection.frequency.toFixed(1)} HZ` : 'WAITING'}</Text>
+          <Text style={[type.mono, styles.frequencyReadout]}>{tuner.detection ? `${tuner.detection.frequency.toFixed(1)} Hz` : 'Waiting'}</Text>
           </View>
         </View>
       </View>
 
       <View style={[styles.actionLedger, compact && styles.actionLedgerCompact]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Choose tuning" onPress={() => setTuningPickerVisible(true)} style={({ pressed }) => [styles.ledgerAction, pressed && styles.pressed]}>
-          <Text style={type.caption}>TUNING</Text>
+          <Text style={type.caption}>Tuning</Text>
           <Text numberOfLines={1} style={styles.ledgerValue}>{tuning.name}</Text>
           <Text numberOfLines={1} style={[type.mono, styles.ledgerDetail]}>{tuning.shortName}</Text>
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Adjust reference pitch" onPress={() => setCalibrationVisible(true)} style={({ pressed }) => [styles.ledgerAction, styles.ledgerActionRight, pressed && styles.pressed]}>
-          <Text style={type.caption}>REFERENCE</Text>
+          <Text style={type.caption}>Reference pitch</Text>
           <Text style={styles.ledgerValue}>{tuner.preferences.calibration} Hz</Text>
-          <Text style={[type.mono, styles.ledgerDetail]}>CALIBRATE ·</Text>
+          <Text style={[type.mono, styles.ledgerDetail]}>Adjust</Text>
         </Pressable>
       </View>
 
       {(tuner.status === 'denied' || tuner.status === 'error' || tuner.status === 'unavailable') ? (
         <View style={styles.notice}>
-          <Text style={[type.section, styles.noticeTitle]}>{tuner.status === 'denied' ? 'MICROPHONE ACCESS NEEDED' : tuner.status === 'unavailable' ? 'NATIVE BUILD REQUIRED' : 'TUNER UNAVAILABLE'}</Text>
+          <Text style={[type.section, styles.noticeTitle]}>{tuner.status === 'denied' ? 'Microphone access' : tuner.status === 'unavailable' ? 'Native build required' : 'Tuner unavailable'}</Text>
           <Text style={type.caption}>{tuner.error ?? 'The tuner needs the TabTensor native development client to access PCM microphone data.'}</Text>
           <View style={styles.noticeActions}>
-            {tuner.status === 'denied' ? <ActionButton variant="secondary" onPress={() => void Linking.openSettings()}>OPEN SETTINGS</ActionButton> : null}
-            <ActionButton variant="quiet" onPress={tuner.retry}>RETRY</ActionButton>
+            {tuner.status === 'denied' ? <ActionButton variant="secondary" onPress={() => void Linking.openSettings()}>Open settings</ActionButton> : null}
+            <ActionButton variant="quiet" onPress={tuner.retry}>Retry</ActionButton>
           </View>
         </View>
       ) : null}
@@ -133,7 +130,7 @@ function AutoToggle({ active, compact, onPress }: { active: boolean; compact: bo
       onPress={onPress}
       style={({ pressed }) => [styles.autoToggle, compact && styles.autoToggleCompact, active && styles.autoToggleActive, pressed && styles.pressed]}
     >
-      <Text style={[type.mono, styles.autoLabel, active && styles.autoLabelActive]}>AUTO</Text>
+      <Text style={[type.mono, styles.autoLabel, active && styles.autoLabelActive]}>Auto</Text>
       <View style={[styles.autoTrack, active && styles.autoTrackActive]}><View style={[styles.autoKnob, active && styles.autoKnobActive]} /></View>
     </Pressable>
   );
@@ -158,15 +155,14 @@ function PitchGrid({ cents, noteName, detection, inTune, statusColor }: { cents?
         {Array.from({ length: 9 }, (_, index) => <View key={`v-${index}`} style={[styles.gridVertical, { left: `${index * 12.5}%` }]} />)}
       </View>
       <View style={styles.directionRow}>
-        <View style={[styles.directionBlock, leftActive && styles.directionActive]}><Text style={[styles.directionArrow, leftActive && styles.directionTextActive]}>←</Text><Text style={[type.mono, styles.directionLabel, leftActive && styles.directionTextActive]}>TUNE UP</Text></View>
-        <View style={[styles.directionBlock, styles.directionBlockRight, rightActive && styles.directionActive]}><Text style={[type.mono, styles.directionLabel, rightActive && styles.directionTextActive]}>TUNE DOWN</Text><Text style={[styles.directionArrow, rightActive && styles.directionTextActive]}>→</Text></View>
+        <View style={[styles.directionBlock, leftActive && styles.directionActive]}><Text style={[styles.directionArrow, leftActive && styles.directionTextActive]}>←</Text><Text style={[type.mono, styles.directionLabel, leftActive && styles.directionTextActive]}>Tune up</Text></View>
+        <View style={[styles.directionBlock, styles.directionBlockRight, rightActive && styles.directionActive]}><Text style={[type.mono, styles.directionLabel, rightActive && styles.directionTextActive]}>Tune down</Text><Text style={[styles.directionArrow, rightActive && styles.directionTextActive]}>→</Text></View>
       </View>
       <View style={styles.pitchReadout}>
         <View style={styles.pitchNoteBlock}>
           <Text style={[styles.pitchNote, { color: inTune ? colors.success : colors.ink }]}>{noteName ?? '—'}</Text>
-          <Text style={[type.mono, styles.pitchState, { color: statusColor }]}>{detection ? (inTune ? 'IN TUNE' : `${clamped > 0 ? '+' : ''}${clamped.toFixed(1)} CENTS`) : 'LISTENING'}</Text>
+          <Text style={[type.mono, styles.pitchState, { color: statusColor }]}>{detection ? (inTune ? 'In tune' : `${clamped > 0 ? '+' : ''}${clamped.toFixed(1)} cents`) : 'Listening'}</Text>
         </View>
-        <Text style={[type.mono, styles.pitchCenterLabel]}>0</Text>
       </View>
       <View style={styles.waveform}>
         {waveform.map((height, index) => <View key={index} style={[styles.waveBar, { height, backgroundColor: inTune ? colors.success : colors.accentBright, opacity: detection ? 0.78 : 0.28 }]} />)}
@@ -232,7 +228,7 @@ function InstrumentPicker({ visible, selectedId, onClose, onSelect }: { visible:
           return (
             <Pressable key={instrument.id} accessibilityRole="radio" accessibilityLabel={instrument.name} accessibilityState={{ selected }} onPress={() => onSelect(instrument)} style={({ pressed }) => [styles.optionRow, selected && styles.optionSelected, pressed && styles.pressed]}>
               <View style={styles.instrumentOptionIcon}><Text style={styles.instrumentOptionCount}>{instrument.stringCount}</Text></View>
-              <View style={styles.optionCopy}><Text style={[type.body, selected && styles.selectedText]}>{instrument.name}</Text><Text style={type.mono}>{instrument.family.toUpperCase()} · {instrument.stringCount} STRINGS</Text></View>
+              <View style={styles.optionCopy}><Text style={[type.body, selected && styles.selectedText]}>{instrument.name}</Text><Text style={type.mono}>{instrument.family} · {instrument.stringCount} strings</Text></View>
               {selected ? <Text style={styles.check}>●</Text> : null}
             </Pressable>
           );
@@ -258,7 +254,7 @@ function TuningPicker({ instrument, visible, customTunings, selectedId, onClose,
           );
         })}
       </ScrollView>
-      <ActionButton variant="secondary" onPress={onCustom}>EDIT CUSTOM TUNING</ActionButton>
+      <ActionButton variant="secondary" onPress={onCustom}>Edit custom tuning</ActionButton>
     </ModalSheet>
   );
 }
@@ -287,7 +283,7 @@ function CustomTuningModal({ visible, instrument, initial, onClose, onSave }: { 
     <ModalSheet visible={visible} onClose={onClose}>
       <Text style={type.screenTitle}>Custom tuning</Text>
       <Text style={[type.caption, styles.modalIntro]}>Adjust each target by semitone. This {instrument.shortName.toLowerCase()} tuning stays on this device.</Text>
-      <Text style={type.caption}>TUNING NAME</Text>
+      <Text style={type.caption}>Tuning name</Text>
       <TextInput value={name} onChangeText={setName} placeholder="My tuning" placeholderTextColor={colors.textDim} style={styles.input} accessibilityLabel="Custom tuning name" />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.customList}>
         {strings.map((stringName, index) => (
@@ -299,7 +295,7 @@ function CustomTuningModal({ visible, instrument, initial, onClose, onSave }: { 
           </View>
         ))}
       </ScrollView>
-      <ActionButton variant="primary" onPress={() => onSave({ id: 'custom', name: name.trim() || 'My tuning', shortName: strings.map((value) => value.replace(/-?\d+$/, '')).join(' '), strings, instrumentIds: [instrument.id], isCustom: true })}>SAVE CUSTOM TUNING</ActionButton>
+      <ActionButton variant="primary" onPress={() => onSave({ id: 'custom', name: name.trim() || 'My tuning', shortName: strings.map((value) => value.replace(/-?\d+$/, '')).join(' '), strings, instrumentIds: [instrument.id], isCustom: true })}>Save custom tuning</ActionButton>
     </ModalSheet>
   );
 }
@@ -314,26 +310,25 @@ function CalibrationModal({ visible, value, onClose, onSave }: { visible: boolea
     <ModalSheet visible={visible} onClose={onClose}>
       <Text style={type.screenTitle}>Reference pitch</Text>
       <Text style={[type.caption, styles.modalIntro]}>Calibrate A4 for instruments that sit above or below concert pitch.</Text>
-      <Text style={styles.calibrationValue}>{next} <Text style={type.body}>Hz</Text></Text>
+      <View style={styles.calibrationValueRow}>
+        <Text style={styles.calibrationValue}>{next}</Text>
+        <Text style={[type.body, styles.calibrationUnit]}>Hz</Text>
+      </View>
       <RangeSlider min={430} max={450} value={next} onChange={(current) => setNext(Math.round(current))} valueLabel="430 — 450 Hz" />
-      <ActionButton variant="primary" onPress={() => onSave(next)}>SAVE CALIBRATION</ActionButton>
+      <ActionButton variant="primary" onPress={() => onSave(next)}>Save calibration</ActionButton>
     </ModalSheet>
   );
 }
 
 const styles = StyleSheet.create({
   screenContent: { paddingBottom: 40 },
-  brandRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 },
-  brandLockup: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  brandMark: { width: 10, height: 10, borderRadius: 3, backgroundColor: colors.accent },
-  brand: { color: colors.ink, fontSize: 13, fontWeight: '800', letterSpacing: 2.4 },
-  localChip: { minHeight: 30, paddingHorizontal: 10, borderRadius: layout.radiusPill, borderWidth: 1, borderColor: colors.rule, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  localDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success },
   pageHeading: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 16 },
-  pageHeadingCopy: { gap: 8 },
-  eyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  eyebrowMark: { width: 7, height: 7, borderRadius: 2, backgroundColor: colors.accent },
-  calibrationLabel: { color: colors.muted, paddingBottom: 4 },
+  pageHeadingCopy: { gap: 4, flex: 1, minWidth: 0 },
+  headingDetail: { color: colors.muted },
+  statusPill: { minHeight: 32, paddingHorizontal: 10, borderRadius: layout.radiusPill, borderWidth: 1, borderColor: colors.rule, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.ruleStrong },
+  statusDotActive: { backgroundColor: colors.success },
+  statusPillText: { fontSize: 9, letterSpacing: 0.5 },
   selectionRow: { flexDirection: 'row', alignItems: 'stretch', gap: 8, marginBottom: 12 },
   selectionRowCompact: { gap: 6 },
   instrumentTrigger: { flex: 1, minHeight: 68, padding: 10, borderRadius: layout.radiusCard, backgroundColor: colors.paperRaised, borderWidth: 1, borderColor: colors.ruleStrong, flexDirection: 'row', alignItems: 'center', gap: 9 },
@@ -352,8 +347,8 @@ const styles = StyleSheet.create({
   autoTrackActive: { backgroundColor: colors.accent },
   autoKnob: { width: 14, height: 14, borderRadius: 7, backgroundColor: colors.inkMuted },
   autoKnobActive: { alignSelf: 'flex-end', backgroundColor: colors.ink },
-  tunerSurface: { backgroundColor: colors.paperRaised, borderRadius: layout.radiusCard, borderWidth: 1, borderColor: colors.ruleStrong, padding: 14, overflow: 'hidden' },
-  surfaceTopline: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, gap: 10 },
+  tunerSurface: { paddingTop: 2, overflow: 'visible' },
+  surfaceTopline: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingHorizontal: 2, gap: 10 },
   tuningPanel: { height: 468, borderRadius: layout.radiusControl, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.rule, overflow: 'hidden', position: 'relative', zIndex: 1 },
   tuningPanelCompact: { height: 438 },
   pitchGrid: { height: 188, borderRadius: 0, backgroundColor: 'transparent', borderWidth: 0, borderColor: 'transparent', overflow: 'visible', position: 'relative', zIndex: 1, padding: 12, justifyContent: 'space-between' },
@@ -364,7 +359,6 @@ const styles = StyleSheet.create({
   pitchNoteBlock: { alignItems: 'center', gap: 1 },
   pitchNote: { fontSize: 50, lineHeight: 54, fontWeight: '800', letterSpacing: -3 },
   pitchState: { fontSize: 9, letterSpacing: 1.1 },
-  pitchCenterLabel: { position: 'absolute', right: 0, top: 2, color: colors.muted },
   waveform: { height: 38, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, zIndex: 1, transform: [{ translateY: -8 }] },
   waveBar: { width: 2, borderRadius: 2, minHeight: 4 },
   pitchTrack: { height: 6, borderRadius: 3, backgroundColor: colors.paperSoft, position: 'relative', zIndex: 1, transform: [{ translateY: -8 }] },
@@ -404,7 +398,7 @@ const styles = StyleSheet.create({
   bottomReadoutRight: { alignItems: 'flex-end', gap: 3 },
   centsReadout: { fontSize: 18 },
   frequencyReadout: { color: colors.muted, fontSize: 9 },
-  actionLedger: { marginTop: 12, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.rule, flexDirection: 'row' },
+  actionLedger: { marginTop: 18, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.rule, flexDirection: 'row' },
   actionLedgerCompact: { flexDirection: 'column' },
   ledgerAction: { flex: 1, minHeight: 78, paddingVertical: 12, paddingRight: 10, gap: 3 },
   ledgerActionRight: { paddingLeft: 14, borderLeftWidth: 1, borderColor: colors.rule },
@@ -417,7 +411,7 @@ const styles = StyleSheet.create({
   modalIntro: { marginTop: 8, marginBottom: 16 },
   modalList: { paddingBottom: 12 },
   optionRow: { minHeight: 60, borderTopWidth: 1, borderColor: colors.rule, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  optionSelected: { borderLeftWidth: 3, borderLeftColor: colors.accent, paddingLeft: 10 },
+  optionSelected: { backgroundColor: colors.accentWash, borderTopColor: colors.accent },
   optionCopy: { flex: 1, minWidth: 0, gap: 2 },
   instrumentOptionIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.paperSoft, borderWidth: 1, borderColor: colors.ruleStrong, alignItems: 'center', justifyContent: 'center' },
   instrumentOptionCount: { color: colors.accentBright, fontFamily: 'monospace', fontSize: 12, fontWeight: '800' },
@@ -429,6 +423,8 @@ const styles = StyleSheet.create({
   customIndex: { ...type.mono, width: 22, color: colors.neutral },
   customNote: { flex: 1, color: colors.ink, fontSize: 18, fontWeight: '800' },
   stepButton: { width: 44, height: 44, borderWidth: 1, borderColor: colors.ruleStrong, borderRadius: layout.radiusControl, alignItems: 'center', justifyContent: 'center' },
-  calibrationValue: { color: colors.accentBright, fontSize: 52, fontWeight: '800', marginBottom: 18 },
+  calibrationValueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginBottom: 18 },
+  calibrationValue: { color: colors.accentBright, fontSize: 52, lineHeight: 60, fontWeight: '800' },
+  calibrationUnit: { color: colors.inkMuted, fontSize: 16, lineHeight: 23 },
   pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
 });

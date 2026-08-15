@@ -1,3 +1,4 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { colors, layout, type } from '@/theme';
@@ -23,14 +24,13 @@ export function ChordBoard({ chord }: { chord: ChordDefinition }) {
     setSelectedString(null);
   }, [chord.id]);
   const selectedLabel = selectedString === null
-    ? 'TAP A STRING FOR DETAIL'
+    ? 'Tap a string for detail'
     : 'STRING ' + STRING_LABELS[selectedString] + ' ' + String.fromCharCode(183) + ' ' + fretDescription(displayedChord, displayedChord.frets[selectedString]);
 
   return (
     <View style={[styles.shell, { width: boardWidth }]} accessibilityLabel={`${chord.name} guitar chord diagram`}>
       <View style={styles.boardTopline}>
-        <Text style={[type.mono, styles.positionLabel]}>{displayedChord.baseFret === 0 ? 'OPEN POSITION' : `POSITION ${displayedChord.baseFret}`}</Text>
-        <Text style={[type.mono, styles.stringCount]}>6 STRINGS</Text>
+        <Text style={[type.mono, styles.positionLabel]}>{displayedChord.baseFret === 0 ? 'Open position' : `Position ${displayedChord.baseFret}`}</Text>
       </View>
 
       <View style={styles.markerRow}>
@@ -154,7 +154,6 @@ const styles = StyleSheet.create({
   },
   boardTopline: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   positionLabel: { color: colors.accentBright, fontSize: 10, letterSpacing: 1 },
-  stringCount: { color: colors.muted, fontSize: 9 },
   markerRow: { marginLeft: 34, flexDirection: 'row', alignItems: 'center' },
   marker: { flex: 1, minHeight: 36, alignItems: 'center', justifyContent: 'center', borderRadius: layout.radiusControl },
   markerSelected: { backgroundColor: colors.accentWash },

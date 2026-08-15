@@ -1,4 +1,4 @@
-/* Hallmark · genre: modern-minimal · tone: technical · anchor hue: warm red · macrostructure: Workbench · theme: TabTensor Forge */
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app · theme: TabTensor Forge */
 /* Hallmark · pre-emit critique: P5 H5 E5 S5 R4 V4 */
 import { Platform, StyleSheet } from 'react-native';
 
@@ -52,14 +52,14 @@ export const colors = {
 export const layout = {
   screenPadding: 20,
   screenTopPadding: 12,
-  sectionGap: 24,
+  sectionGap: 28,
   panelGap: 12,
-  radiusCard: 16,
-  radiusControl: 10,
+  radiusCard: 18,
+  radiusControl: 12,
   radiusPill: 999,
   controlHeight: 48,
   compactControlHeight: 44,
-  tabBarHeight: 84,
+  tabBarHeight: 76,
 };
 
 export const type = StyleSheet.create({
@@ -73,7 +73,7 @@ export const type = StyleSheet.create({
   screenTitle: {
     color: colors.ink,
     fontFamily: fontFamilies.display,
-    fontSize: 30,
+    fontSize: 32,
     fontWeight: '800',
     letterSpacing: -0.9,
   },
@@ -82,7 +82,7 @@ export const type = StyleSheet.create({
     fontFamily: fontFamilies.body,
     fontSize: 12,
     fontWeight: '800',
-    letterSpacing: 1.6,
+    letterSpacing: 1.2,
   },
   body: {
     color: colors.ink,

@@ -1,6 +1,8 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ActionButton } from '@/components/ActionButton';
+import { AppHeader } from '@/components/AppHeader';
 import { ScreenShell } from '@/components/ScreenShell';
 import { SectionHeader } from '@/components/SectionHeader';
 import { colors, layout, type } from '@/theme';
@@ -60,14 +62,14 @@ export function PlayerScreen({ onOpenSong }: { onOpenSong: (song: GuitarProSong)
 
   return (
     <ScreenShell>
-      <View style={styles.brandRow}><View style={styles.brandLockup}><View style={styles.brandMark} /><Text style={styles.brand}>TABTENSOR</Text></View><View style={styles.localChip}><View style={styles.localDot} /><Text style={type.mono}>LOCAL</Text></View></View>
-      <SectionHeader eyebrow="02 / PLAYER" title="Song player" detail="READ-ONLY · DEVICE FILES" />
+      <AppHeader />
+      <SectionHeader title="Player" detail="Guitar Pro · MusicXML · MIDI" />
       <View style={styles.openPanel}>
-        <View style={styles.openPanelHeader}><View style={styles.openIndex}><Text style={[type.mono, styles.openIndexText]}>01</Text></View><View style={styles.openCopy}><Text style={type.body}>Open a file</Text><Text style={type.caption}>Guitar Pro, MusicXML, MIDI</Text></View></View>
-        <ActionButton variant="primary" loading={busy} onPress={() => void openPickedFile()}>OPEN FILE</ActionButton>
+        <View style={styles.openPanelHeader}><View style={styles.openMark}><Text style={styles.openMarkText}>+</Text></View><View style={styles.openCopy}><Text style={type.body}>Open a score</Text><Text style={type.caption}>Choose a Guitar Pro, MusicXML or MIDI file.</Text></View></View>
+        <ActionButton variant="primary" loading={busy} onPress={() => void openPickedFile()}>Open file</ActionButton>
       </View>
-      {error ? <View style={styles.error}><Text style={[type.section, styles.errorTitle]}>PLAYER MESSAGE</Text><Text style={type.caption}>{error}</Text></View> : null}
-      <View style={styles.recentHeader}><View><Text style={type.section}>RECENTLY OPENED</Text><Text style={type.caption}>Stored on this device</Text></View><Text style={type.mono}>{recent.length} FILES</Text></View>
+      {error ? <View style={styles.error}><Text style={[type.section, styles.errorTitle]}>Player message</Text><Text style={type.caption}>{error}</Text></View> : null}
+      <View style={styles.recentHeader}><View><Text style={type.body}>Recent files</Text><Text style={type.caption}>Stored on this device</Text></View><Text style={type.mono}>{recent.length ? `${recent.length} ${recent.length === 1 ? 'file' : 'files'}` : 'Empty'}</Text></View>
       {recent.length === 0 ? (
         <View style={styles.empty}><Text style={styles.emptyMark}>—</Text><Text style={type.body}>No files opened yet.</Text><Text style={type.caption}>Your local song files will appear here after the first import.</Text></View>
       ) : recent.map((file) => (
@@ -79,24 +81,18 @@ export function PlayerScreen({ onOpenSong }: { onOpenSong: (song: GuitarProSong)
           {loadingId === file.id ? <ActivityIndicator color={colors.accentBright} /> : <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${file.name} from recent files`} onPress={() => void removeRecent(file)} hitSlop={6} style={({ pressed }) => [styles.remove, pressed && styles.pressed]}><Text style={type.mono}>×</Text></Pressable>}
         </View>
       ))}
-      <View style={styles.privacy}><Text style={type.section}>DEVICE ONLY</Text><Text style={type.caption}>Files, playback state and tuner preferences stay on this device. TabTensor does not upload audio or song files.</Text></View>
+      <View style={styles.privacy}><Text style={type.body}>On this device</Text><Text style={type.caption}>Files, playback state and tuner preferences stay here. TabTensor does not upload audio or song files.</Text></View>
     </ScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  brandRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 26 },
-  brandLockup: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  brandMark: { width: 10, height: 10, borderRadius: 3, backgroundColor: colors.accent },
-  brand: { color: colors.ink, fontSize: 13, fontWeight: '800', letterSpacing: 2.4 },
-  localChip: { minHeight: 30, paddingHorizontal: 10, borderRadius: layout.radiusPill, borderWidth: 1, borderColor: colors.rule, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  localDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success },
-  openPanel: { padding: 16, borderWidth: 1, borderColor: colors.accent, borderRadius: layout.radiusCard, backgroundColor: colors.accentWash, gap: 16 },
+  openPanel: { padding: 16, borderWidth: 1, borderColor: colors.ruleStrong, borderRadius: layout.radiusCard, backgroundColor: colors.paperRaised, gap: 16 },
   openPanelHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  openIndex: { width: 38, height: 38, borderRadius: layout.radiusControl, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  openIndexText: { color: colors.accentInk },
+  openMark: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.accentWash, alignItems: 'center', justifyContent: 'center' },
+  openMarkText: { color: colors.accentBright, fontSize: 25, fontWeight: '300', lineHeight: 28 },
   openCopy: { flex: 1, gap: 4, minWidth: 0 },
-  recentHeader: { marginTop: 30, marginBottom: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12 },
+  recentHeader: { marginTop: 30, marginBottom: 10, paddingBottom: 10, borderBottomWidth: 1, borderColor: colors.rule, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12 },
   fileRow: { minHeight: 80, borderTopWidth: 1, borderColor: colors.rule, flexDirection: 'row', alignItems: 'center', gap: 10 },
   fileMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 80 },
   fileIcon: { width: 54, height: 38, borderWidth: 1, borderColor: colors.ruleStrong, borderRadius: layout.radiusControl, backgroundColor: colors.paperRaised, alignItems: 'center', justifyContent: 'center' },
@@ -106,6 +102,6 @@ const styles = StyleSheet.create({
   emptyMark: { color: colors.neutral, fontSize: 32 },
   error: { marginTop: 14, padding: 16, borderWidth: 1, borderColor: colors.accent, borderRadius: layout.radiusCard, backgroundColor: colors.accentWash, gap: 8 },
   errorTitle: { color: colors.accentBright },
-  privacy: { marginTop: 30, paddingTop: 18, borderTopWidth: 1, borderColor: colors.rule, gap: 8 },
+  privacy: { marginTop: 30, paddingTop: 18, borderTopWidth: 1, borderColor: colors.rule, gap: 6 },
   pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
 });

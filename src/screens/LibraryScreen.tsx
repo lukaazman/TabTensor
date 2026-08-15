@@ -1,3 +1,4 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,6 +14,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { ActionButton } from '@/components/ActionButton';
+import { AppHeader } from '@/components/AppHeader';
 import { ChordBoard } from '@/library/ChordBoard';
 import { ALL_CHORDS, ChordDefinition } from '@/library/chords';
 import { SCALE_CATALOG, SCALE_ROOTS, ScaleDefinition, ScaleGenre, scaleNotes } from '@/library/scales';
@@ -98,19 +100,13 @@ export function LibraryScreen({ onOpenSong }: { onOpenSong: (song: GuitarProSong
 
   return (
     <ScreenShell contentStyle={styles.screenContent}>
-      <View style={styles.brandRow}>
-        <View style={styles.brandLockup}><View style={styles.brandMark} /><Text style={styles.brand}>TABTENSOR</Text></View>
-        <View style={styles.localChip}><View style={styles.localDot} /><Text style={type.mono}>LOCAL</Text></View>
-      </View>
-
-      <SectionHeader eyebrow="03 / LIBRARY" title="Guitar library" detail="LOCAL REFERENCE · ALWAYS READY" />
-      <Text style={[type.caption, styles.intro]}>A compact workbench for your files, voicings and scale ideas. Tap a section to reveal its tools.</Text>
+      <AppHeader />
+      <SectionHeader title="Library" detail="Chords · scales · local files" />
 
       <View style={styles.sectionStack}>
         <CollectionSectionButton
-          number="01"
           title="Recent files"
-          detail={recent.length === 0 ? 'PLAYER HISTORY · EMPTY' : `${recent.length} PLAYER FILE${recent.length === 1 ? '' : 'S'}`}
+          detail={recent.length === 0 ? 'No files yet' : `${recent.length} ${recent.length === 1 ? 'file' : 'files'}`}
           expanded={expanded === 'recent'}
           onPress={() => setExpanded(expanded === 'recent' ? null : 'recent')}
         />
@@ -125,22 +121,21 @@ export function LibraryScreen({ onOpenSong }: { onOpenSong: (song: GuitarProSong
         ) : null}
 
         <CollectionSectionButton
-          number="02"
           title="Chord collection"
-          detail={`${ALL_CHORDS.length} VOICINGS · CHROMATIC ORDER`}
+          detail="Browse chord shapes"
           expanded={expanded === 'chords'}
           onPress={() => setExpanded(expanded === 'chords' ? null : 'chords')}
         />
         {expanded === 'chords' ? (
           <View style={styles.collectionPanel}>
             <View style={styles.panelIntro}>
-              <Text style={type.body}>Slide through the chord index</Text>
-              <Text style={type.caption}>Every root is grouped chromatically, from C through B. Use the arrows or swipe the title and board.</Text>
+              <Text style={type.body}>Chord shapes</Text>
+              <Text style={type.caption}>Browse roots in chromatic order. Use the arrows or swipe between shapes.</Text>
             </View>
             <View style={styles.chordControls}>
-              <ActionButton variant="quiet" accessibilityLabel="Previous chord" disabled={chordIndex === 0} onPress={() => goToChord(chordIndex - 1)}>‹ PREV</ActionButton>
-              <Text style={[type.mono, styles.indexReadout]}>{String(chordIndex + 1).padStart(3, '0')} / {String(ALL_CHORDS.length).padStart(3, '0')}</Text>
-              <ActionButton variant="quiet" accessibilityLabel="Next chord" disabled={chordIndex === ALL_CHORDS.length - 1} onPress={() => goToChord(chordIndex + 1)}>NEXT ›</ActionButton>
+              <ActionButton variant="quiet" accessibilityLabel="Previous chord" disabled={chordIndex === 0} onPress={() => goToChord(chordIndex - 1)}>Previous</ActionButton>
+              <Text style={[type.mono, styles.indexReadout]}>{ALL_CHORDS[chordIndex]?.name ?? 'Chord'}</Text>
+              <ActionButton variant="quiet" accessibilityLabel="Next chord" disabled={chordIndex === ALL_CHORDS.length - 1} onPress={() => goToChord(chordIndex + 1)}>Next</ActionButton>
             </View>
             <FlatList
               ref={chordListRef}
@@ -152,7 +147,7 @@ export function LibraryScreen({ onOpenSong }: { onOpenSong: (song: GuitarProSong
               showsHorizontalScrollIndicator={false}
               keyExtractor={(item) => item.id}
               getItemLayout={(_, index) => ({ length: carouselWidth, offset: carouselWidth * index, index })}
-              renderItem={({ item, index }: ListRenderItemInfo<ChordDefinition>) => (
+              renderItem={({ item }: ListRenderItemInfo<ChordDefinition>) => (
                 <View style={[styles.chordPage, { width: carouselWidth }]}>
                   <View style={styles.chordTitleBlock}>
                     <Text style={styles.chordName}>{item.name}</Text>
@@ -163,7 +158,6 @@ export function LibraryScreen({ onOpenSong }: { onOpenSong: (song: GuitarProSong
                     <View style={styles.infoLine}><Text style={type.section}>FORMULA</Text><Text style={[type.mono, styles.infoValue]}>{item.formula}</Text></View>
                     <Text style={type.caption}>{item.description}</Text>
                   </View>
-                  <Text style={[type.mono, styles.pageFooter]}>CHROMATIC INDEX · {String(Math.floor(index / 28) + 1).padStart(2, '0')} / 12 ROOTS</Text>
                 </View>
               )}
               onMomentumScrollEnd={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -178,17 +172,16 @@ export function LibraryScreen({ onOpenSong }: { onOpenSong: (song: GuitarProSong
         ) : null}
 
         <CollectionSectionButton
-          number="03"
           title="Scale collection"
-          detail={`${SCALE_CATALOG.length} POPULAR + GENRE MAPS`}
+          detail="Find a scale by root"
           expanded={expanded === 'scales'}
           onPress={() => setExpanded(expanded === 'scales' ? null : 'scales')}
         />
         {expanded === 'scales' ? (
           <View style={styles.collectionPanel}>
             <View style={styles.panelIntro}>
-              <Text style={type.body}>Choose a scale to reveal it</Text>
-              <Text style={type.caption}>Start with the popular set, then explore genre-specific colors for writing and improvising.</Text>
+              <Text style={type.body}>Scale shapes</Text>
+              <Text style={type.caption}>Start with a root, then explore colors for writing and improvising.</Text>
             </View>
             <View style={styles.scaleGroups}>
               {SCALE_GENRES.map((genre) => {
@@ -196,7 +189,7 @@ export function LibraryScreen({ onOpenSong }: { onOpenSong: (song: GuitarProSong
                 if (scales.length === 0) return null;
                 return (
                   <View key={genre} style={styles.scaleGroup}>
-                    <Text style={type.section}>{genre}</Text>
+                    <Text style={type.section}>{prettyGenre(genre)}</Text>
                     {scales.map((scale) => (
                       <Pressable
                         key={scale.id}
@@ -210,7 +203,6 @@ export function LibraryScreen({ onOpenSong }: { onOpenSong: (song: GuitarProSong
                           <Text style={type.body}>{scale.name}</Text>
                           <Text style={type.caption}>{scale.use}</Text>
                         </View>
-                        <Text style={[type.mono, styles.scaleRowCount]}>{scale.intervals.length}N</Text>
                         <Text style={styles.rowChevron}>{selectedScaleId === scale.id ? '−' : '+'}</Text>
                       </Pressable>
                     ))}
@@ -235,12 +227,12 @@ export function LibraryScreen({ onOpenSong }: { onOpenSong: (song: GuitarProSong
       </View>
 
       {error ? <View style={styles.error}><Text style={[type.section, styles.errorTitle]}>LIBRARY MESSAGE</Text><Text style={type.caption}>{error}</Text></View> : null}
-      <View style={styles.privacy}><Text style={type.section}>DEVICE ONLY</Text><Text style={type.caption}>Recent file references stay on this device. Opening a file hands it to the same player used by the Player tab.</Text></View>
+      <View style={styles.privacy}><Text style={type.body}>On this device</Text><Text style={type.caption}>Recent file references stay here. Opening a file hands it to the same player used by the Player tab.</Text></View>
     </ScreenShell>
   );
 }
 
-function CollectionSectionButton({ number, title, detail, expanded, onPress }: { number: string; title: string; detail: string; expanded: boolean; onPress: () => void }) {
+function CollectionSectionButton({ title, detail, expanded, onPress }: { title: string; detail: string; expanded: boolean; onPress: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -248,7 +240,7 @@ function CollectionSectionButton({ number, title, detail, expanded, onPress }: {
       onPress={onPress}
       style={({ pressed }) => [styles.collectionButton, expanded && styles.collectionButtonExpanded, pressed && styles.pressed]}
     >
-      <View style={[styles.collectionNumber, expanded && styles.collectionNumberExpanded]}><Text style={[type.mono, styles.collectionNumberText, expanded && styles.collectionNumberTextExpanded]}>{number}</Text></View>
+      <View style={[styles.collectionMarker, expanded && styles.collectionMarkerExpanded]} />
       <View style={styles.collectionCopy}><Text style={type.section}>{title.toUpperCase()}</Text><Text style={type.caption}>{detail}</Text></View>
       <Text style={[styles.collectionChevron, expanded && styles.collectionChevronExpanded]}>{expanded ? '−' : '+'}</Text>
     </Pressable>
@@ -283,11 +275,11 @@ function ScaleViewer({ scale, rootIndex, notes, selectedNoteIndex, onRootChange,
   return (
     <View style={styles.scaleViewer}>
       <View style={styles.scaleViewerHeader}>
-        <View><Text style={styles.scaleTitle}>{SCALE_ROOTS[rootIndex]} {scale.name}</Text><Text style={[type.mono, styles.scaleGenre]}>{scale.genre} · {notes.length} NOTES</Text></View>
+        <View><Text style={styles.scaleTitle}>{SCALE_ROOTS[rootIndex]} {scale.name}</Text><Text style={[type.mono, styles.scaleGenre]}>{prettyGenre(scale.genre)}</Text></View>
         <View style={styles.scaleRootBadge}><Text style={styles.scaleRootBadgeText}>{SCALE_ROOTS[rootIndex]}</Text></View>
       </View>
       <Text style={[type.caption, styles.scaleDescription]}>{scale.description}</Text>
-      <Text style={type.section}>ROOT NOTE</Text>
+      <Text style={type.section}>Root note</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rootChips}>
         {SCALE_ROOTS.map((root, index) => (
           <Pressable key={root} accessibilityRole="button" accessibilityState={{ selected: rootIndex === index }} onPress={() => onRootChange(index)} style={({ pressed }) => [styles.rootChip, rootIndex === index && styles.rootChipSelected, pressed && styles.pressed]}>
@@ -296,8 +288,8 @@ function ScaleViewer({ scale, rootIndex, notes, selectedNoteIndex, onRootChange,
         ))}
       </ScrollView>
       <View style={styles.scalePlayerBar}>
-        <View><Text style={type.section}>SCALE PLAYER</Text><Text style={type.caption}>Tap a note to spotlight its degree.</Text></View>
-        <Text style={[type.mono, styles.scalePosition]}>{String(activeIndex + 1).padStart(2, '0')} / {String(notes.length).padStart(2, '0')}</Text>
+        <View><Text style={type.section}>Notes</Text><Text style={type.caption}>Tap a note to spotlight its degree.</Text></View>
+        <Text style={[type.mono, styles.scalePosition]}>Note {activeIndex + 1} of {notes.length}</Text>
       </View>
       <View style={styles.noteTrack}>
         <View style={styles.noteTrackLine} />
@@ -317,31 +309,26 @@ function ScaleViewer({ scale, rootIndex, notes, selectedNoteIndex, onRootChange,
   );
 }
 
+function prettyGenre(value: string): string {
+  return value.toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 const styles = StyleSheet.create({
   screenContent: { paddingBottom: 42 },
-  brandRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 26 },
-  brandLockup: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  brandMark: { width: 10, height: 10, borderRadius: 3, backgroundColor: colors.accent },
-  brand: { color: colors.ink, fontSize: 13, fontWeight: '800', letterSpacing: 2.4 },
-  localChip: { minHeight: 30, paddingHorizontal: 10, borderRadius: layout.radiusPill, borderWidth: 1, borderColor: colors.rule, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  localDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success },
-  intro: { marginTop: -10, marginBottom: 20 },
-  sectionStack: { gap: 10 },
-  collectionButton: { minHeight: 72, padding: 12, borderRadius: layout.radiusCard, borderWidth: 1, borderColor: colors.ruleStrong, backgroundColor: colors.paperRaised, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  collectionButtonExpanded: { borderColor: colors.accent, backgroundColor: colors.accentWash },
-  collectionNumber: { width: 40, height: 40, borderRadius: layout.radiusControl, backgroundColor: colors.paperSoft, alignItems: 'center', justifyContent: 'center' },
-  collectionNumberExpanded: { backgroundColor: colors.accent },
-  collectionNumberText: { color: colors.accentBright },
-  collectionNumberTextExpanded: { color: colors.accentInk },
+  sectionStack: { gap: 6 },
+  collectionButton: { minHeight: 68, paddingVertical: 10, paddingHorizontal: 4, borderBottomWidth: 1, borderColor: colors.rule, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  collectionButtonExpanded: { borderBottomColor: colors.accent },
+  collectionMarker: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.ruleStrong },
+  collectionMarkerExpanded: { backgroundColor: colors.accent },
   collectionCopy: { flex: 1, minWidth: 0, gap: 3 },
   collectionChevron: { color: colors.inkMuted, fontSize: 25, lineHeight: 28, paddingHorizontal: 6 },
   collectionChevronExpanded: { color: colors.accentBright },
-  collectionPanel: { padding: 16, borderWidth: 1, borderColor: colors.ruleStrong, borderRadius: layout.radiusCard, backgroundColor: colors.paperRaised, gap: 14 },
+  collectionPanel: { paddingTop: 10, paddingBottom: 10, gap: 14 },
   panelIntro: { gap: 5 },
-  loadingPanel: { minHeight: 126, alignItems: 'center', justifyContent: 'center', gap: 10, borderWidth: 1, borderColor: colors.rule, borderRadius: layout.radiusCard, backgroundColor: colors.paperRaised },
-  emptyPanel: { minHeight: 160, padding: 20, alignItems: 'center', justifyContent: 'center', gap: 7, borderWidth: 1, borderColor: colors.rule, borderRadius: layout.radiusCard, backgroundColor: colors.paperRaised },
+  loadingPanel: { minHeight: 126, alignItems: 'center', justifyContent: 'center', gap: 10, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.rule },
+  emptyPanel: { minHeight: 160, padding: 20, alignItems: 'center', justifyContent: 'center', gap: 7, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.rule },
   emptyMark: { color: colors.neutral, fontSize: 32 },
-  recentPanel: { paddingHorizontal: 16, paddingVertical: 14, borderWidth: 1, borderColor: colors.ruleStrong, borderRadius: layout.radiusCard, backgroundColor: colors.paperRaised },
+  recentPanel: { paddingVertical: 8 },
   fileRow: { minHeight: 76, borderTopWidth: 1, borderColor: colors.rule, flexDirection: 'row', alignItems: 'center', gap: 9 },
   fileMain: { flex: 1, minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: 10 },
   fileIcon: { width: 54, height: 38, borderWidth: 1, borderColor: colors.ruleStrong, borderRadius: layout.radiusControl, backgroundColor: colors.paper, alignItems: 'center', justifyContent: 'center' },
@@ -355,21 +342,19 @@ const styles = StyleSheet.create({
   chordTitleBlock: { alignItems: 'center', paddingVertical: 4, gap: 2 },
   chordName: { color: colors.ink, fontSize: 34, lineHeight: 38, fontWeight: '800', letterSpacing: -1 },
   chordQuality: { color: colors.accentBright, fontSize: 9, letterSpacing: 1.2 },
-  chordInfo: { padding: 12, borderLeftWidth: 2, borderLeftColor: colors.accent, backgroundColor: colors.paper, gap: 8 },
+  chordInfo: { paddingTop: 12, borderTopWidth: 1, borderColor: colors.rule, gap: 8 },
   infoLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   infoValue: { color: colors.ink, fontSize: 10 },
-  pageFooter: { color: colors.neutral, fontSize: 9, textAlign: 'center' },
   scaleGroups: { gap: 18 },
   scaleGroup: { gap: 7 },
-  scaleRow: { minHeight: 62, paddingHorizontal: 10, borderTopWidth: 1, borderColor: colors.rule, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  scaleRowSelected: { borderLeftWidth: 3, borderLeftColor: colors.accent, paddingLeft: 7, backgroundColor: colors.paper },
+  scaleRow: { minHeight: 62, paddingHorizontal: 4, borderTopWidth: 1, borderColor: colors.rule, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  scaleRowSelected: { backgroundColor: colors.paperRaised, borderTopColor: colors.accent },
   scaleRowMarker: { width: 7, height: 7, borderRadius: 2, backgroundColor: colors.ruleStrong },
   scaleRowMarkerSelected: { backgroundColor: colors.accentBright },
   scaleRowCopy: { flex: 1, minWidth: 0, gap: 2 },
-  scaleRowCount: { color: colors.muted, fontSize: 9 },
   rowChevron: { width: 24, color: colors.accentBright, fontSize: 22, textAlign: 'center' },
   scalePrompt: { minHeight: 142, alignItems: 'center', justifyContent: 'center', gap: 7, borderWidth: 1, borderColor: colors.rule, borderRadius: layout.radiusControl, backgroundColor: colors.paper },
-  scaleViewer: { marginTop: 2, padding: 14, borderWidth: 1, borderColor: colors.accent, borderRadius: layout.radiusCard, backgroundColor: colors.accentWash, gap: 12 },
+  scaleViewer: { marginTop: 2, padding: 14, borderWidth: 1, borderColor: colors.ruleStrong, borderRadius: layout.radiusCard, backgroundColor: colors.paperRaised, gap: 12 },
   scaleViewerHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   scaleTitle: { color: colors.ink, fontSize: 23, lineHeight: 28, fontWeight: '800' },
   scaleGenre: { color: colors.accentBright, fontSize: 9, marginTop: 3 },

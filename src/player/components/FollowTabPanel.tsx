@@ -1,3 +1,4 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import React from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { RangeSlider } from '@/components/RangeSlider';
@@ -20,21 +21,21 @@ export function FollowTabPanel({ follow, onToggle }: { follow: FollowTabControll
   const detectedLabel = follow.detection?.noteName ?? '--';
   const centsLabel = follow.detection?.cents === null || follow.detection?.cents === undefined
     ? '--'
-    : (follow.detection.cents > 0 ? '+' : '') + follow.detection.cents.toFixed(0) + ' CENTS';
+    : (follow.detection.cents > 0 ? '+' : '') + follow.detection.cents.toFixed(0) + ' cents';
   const statusLabel = getStatusLabel(follow);
   const feedbackLabel = follow.feedback === 'correct'
-    ? '✓ CORRECT'
+    ? '✓ Correct'
     : follow.feedback === 'wrong'
-      ? 'WRONG NOTE · KEEP TRYING'
+      ? 'Wrong note · keep trying'
       : follow.status === 'listening'
-        ? 'LISTENING FOR THE EXPECTED PITCH'
+        ? 'Listening for the expected pitch'
         : statusLabel;
 
   return (
     <View style={styles.wrap}>
       <View style={styles.header}>
         <View style={styles.headerCopy}>
-          <Text style={type.section}>FOLLOW TAB</Text>
+          <Text style={type.section}>Follow tab</Text>
           <Text style={type.caption}>Wait for the correct pitch before advancing the playhead.</Text>
         </View>
         <Pressable
@@ -44,7 +45,7 @@ export function FollowTabPanel({ follow, onToggle }: { follow: FollowTabControll
           onPress={onToggle ?? follow.toggle}
           style={[styles.toggle, follow.enabled && styles.toggleActive]}
         >
-          <Text style={[type.mono, follow.enabled && styles.toggleTextActive]}>{follow.enabled ? 'ON' : 'OFF'}</Text>
+          <Text style={[type.mono, follow.enabled && styles.toggleTextActive]}>{follow.enabled ? 'On' : 'Off'}</Text>
         </Pressable>
       </View>
 
@@ -52,13 +53,13 @@ export function FollowTabPanel({ follow, onToggle }: { follow: FollowTabControll
         <>
           <View style={styles.readout}>
             <View style={styles.readoutCell}>
-              <Text style={type.caption}>EXPECTED</Text>
+              <Text style={type.caption}>Expected</Text>
               <Text style={styles.expected} numberOfLines={1}>{expectedLabel}</Text>
               <Text style={type.mono}>{expectedPositionLabel}</Text>
-              <Text style={type.mono}>{expected?.isChord ? 'CHORD · MANUAL ADVANCE' : 'NOTE ' + follow.stepNumber + '/' + follow.sequenceLength}</Text>
+              <Text style={type.mono}>{expected?.isChord ? 'Chord · manual advance' : 'Step ' + follow.stepNumber + ' of ' + follow.sequenceLength}</Text>
             </View>
             <View style={[styles.readoutCell, styles.detectedCell]}>
-              <Text style={type.caption}>DETECTED</Text>
+              <Text style={type.caption}>Detected</Text>
               <Text style={[styles.detected, follow.feedback === 'correct' && styles.detectedCorrect]} numberOfLines={1}>{detectedLabel}</Text>
               <Text style={type.mono}>{centsLabel}</Text>
             </View>
@@ -69,15 +70,15 @@ export function FollowTabPanel({ follow, onToggle }: { follow: FollowTabControll
             <Text style={[type.caption, follow.feedback === 'correct' && styles.statusCorrect, follow.feedback === 'wrong' && styles.statusWrong]}>{feedbackLabel}</Text>
           </View>
 
-          {follow.status === 'count-in' ? <Text style={styles.countIn}>COUNT IN · {follow.countInRemaining ?? '--'} BEATS</Text> : null}
+          {follow.status === 'count-in' ? <Text style={styles.countIn}>Count-in · {follow.countInRemaining ?? '--'} beats</Text> : null}
 
           {follow.error ? (
             <View style={styles.error}>
-              <Text style={[type.section, styles.errorTitle]}>{follow.status === 'denied' ? 'MICROPHONE PERMISSION NEEDED' : 'FOLLOW TAB UNAVAILABLE'}</Text>
+              <Text style={[type.section, styles.errorTitle]}>{follow.status === 'denied' ? 'Microphone permission needed' : 'Follow tab unavailable'}</Text>
               <Text style={type.caption}>{follow.error}</Text>
               {follow.status === 'denied' ? (
                 <Pressable accessibilityRole="button" onPress={() => void Linking.openSettings()} style={styles.settingsButton}>
-                  <Text style={[type.mono, styles.settingsButtonText]}>OPEN SETTINGS</Text>
+                  <Text style={[type.mono, styles.settingsButtonText]}>Open settings</Text>
                 </Pressable>
               ) : null}
             </View>
@@ -85,35 +86,35 @@ export function FollowTabPanel({ follow, onToggle }: { follow: FollowTabControll
 
           {expected?.isChord && follow.status !== 'complete' ? (
             <Pressable accessibilityRole="button" accessibilityLabel="Manually advance past chord" onPress={() => void follow.advance()} style={styles.advanceButton}>
-              <Text style={[type.section, styles.advanceText]}>MANUAL ADVANCE</Text>
+              <Text style={[type.section, styles.advanceText]}>Manual advance</Text>
             </Pressable>
           ) : null}
 
           <View style={styles.settings}>
-            <Text style={[type.section, styles.settingsTitle]}>PRACTICE SETTINGS</Text>
-            <Text style={type.caption}>PITCH TOLERANCE · ±{follow.toleranceCents} CENTS</Text>
+            <Text style={[type.section, styles.settingsTitle]}>Practice settings</Text>
+            <Text style={type.caption}>Pitch tolerance · ±{follow.toleranceCents} cents</Text>
             <View style={styles.optionRow}>
               {TOLERANCE_MODES.map((mode) => (
                 <OptionButton
                   key={mode}
-                  label={mode.toUpperCase()}
+                  label={capitalize(mode)}
                   selected={follow.settings.toleranceMode === mode}
                   onPress={() => follow.updateSettings({ toleranceMode: mode })}
                 />
               ))}
             </View>
             <RangeSlider
-              label="INPUT SENSITIVITY"
+              label="Input sensitivity"
               value={follow.settings.sensitivity}
               valueLabel={Math.round(follow.settings.sensitivity * 100) + '%'}
               onChange={(value) => follow.updateSettings({ sensitivity: value })}
             />
-            <Text style={type.caption}>CORRECT NOTE CONFIRMATION · {follow.confirmationFrames} FRAMES</Text>
+            <Text style={type.caption}>Correct note confirmation · {follow.confirmationFrames} frames</Text>
             <View style={styles.optionRow}>
               {CONFIRMATION_MODES.map((mode) => (
                 <OptionButton
                   key={mode}
-                  label={mode.toUpperCase()}
+                  label={capitalize(mode)}
                   selected={follow.settings.confirmationMode === mode}
                   onPress={() => follow.updateSettings({ confirmationMode: mode })}
                 />
@@ -137,13 +138,17 @@ function OptionButton({ label, selected, onPress }: { label: string; selected: b
 }
 
 function getStatusLabel(follow: FollowTabController): string {
-  if (follow.status === 'count-in') return 'COUNT IN';
-  if (follow.status === 'starting') return 'STARTING MICROPHONE';
-  if (follow.status === 'paused') return 'PAUSED · RESUME TO CONTINUE';
-  if (follow.status === 'complete') return 'PRACTICE COMPLETE';
-  if (follow.status === 'unavailable' || follow.status === 'denied' || follow.status === 'error') return 'CHECK MICROPHONE SETUP';
-  if (follow.status === 'listening') return 'LISTENING';
-  return 'READY';
+  if (follow.status === 'count-in') return 'Count-in';
+  if (follow.status === 'starting') return 'Starting microphone';
+  if (follow.status === 'paused') return 'Paused · resume to continue';
+  if (follow.status === 'complete') return 'Practice complete';
+  if (follow.status === 'unavailable' || follow.status === 'denied' || follow.status === 'error') return 'Check microphone setup';
+  if (follow.status === 'listening') return 'Listening';
+  return 'Ready';
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 const styles = StyleSheet.create({

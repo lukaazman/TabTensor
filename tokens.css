@@ -1,4 +1,4 @@
-/* Hallmark · genre: modern-minimal · tone: technical · anchor hue: warm red · macrostructure: Workbench · theme: TabTensor Forge */
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app · theme: TabTensor Forge */
 :root {
   --color-paper: oklch(15% 0.009 28);
   --color-paper-2: oklch(19% 0.011 28);
@@ -33,7 +33,7 @@
   --text-caption: 0.75rem;
   --text-body: 1rem;
   --text-section: 1.375rem;
-  --text-screen: 1.875rem;
+  --text-screen: 2rem;
   --text-readout: 4.875rem;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -43,8 +43,8 @@
   --dur-short: 220ms;
   --dur-long: 300ms;
 
-  --radius-card: 1rem;
-  --radius-control: 0.625rem;
+  --radius-card: 1.125rem;
+  --radius-control: 0.75rem;
   --radius-pill: 999px;
   --rule-hairline: 1px;
 }

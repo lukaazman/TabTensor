@@ -1,4 +1,13 @@
-[
+[{
+    "date": "2026-08-16",
+    "scope": "app",
+    "macrostructure": "Workbench",
+    "theme": "TabTensor Forge",
+    "enrichment": "none",
+    "nav": "bottom mode dock",
+    "footer": "none — functional app surface",
+    "brief": "TabTensor refinement: remove decorative numbering, reduce card chrome, unify headers"
+  },
   {
     "date": "2026-08-12",
     "scope": "app",

@@ -1,3 +1,4 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import React, { useMemo, useState } from 'react';
 import { PanResponder, StyleSheet, Text, View } from 'react-native';
 import { colors, type } from '@/theme';
@@ -57,7 +58,7 @@ const styles = StyleSheet.create({
   wrap: { gap: 7 },
   meta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   touchArea: { height: 44, justifyContent: 'center' },
-  track: { height: 5, borderRadius: 3, backgroundColor: colors.rule, position: 'relative' },
+  track: { height: 5, borderRadius: 3, backgroundColor: colors.paperSoft, position: 'relative' },
   fill: { height: 5, borderRadius: 3, backgroundColor: colors.accent },
   thumb: { position: 'absolute', top: -7, width: 19, height: 19, marginLeft: -9.5, borderRadius: 10, backgroundColor: colors.ink, borderWidth: 3, borderColor: colors.accent },
 });

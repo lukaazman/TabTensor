@@ -1,3 +1,4 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { RangeSlider } from '@/components/RangeSlider';
@@ -44,14 +45,14 @@ export function TransportControls({ position, duration, state, speed, countIn, o
         </View>
         <Pressable accessibilityRole="switch" accessibilityLabel="Toggle count-in" accessibilityState={{ checked: countIn }} onPress={onToggleCountIn} hitSlop={3} style={({ pressed }) => [styles.countButton, countIn && styles.countButtonActive, pressed && styles.pressed]}>
           <Text style={[styles.countIcon, countIn && styles.countActiveText]}>{COUNT_SYMBOL}</Text>
-          <Text style={[styles.countLabel, countIn && styles.countActiveText]}>COUNT</Text>
+          <Text style={[styles.countLabel, countIn && styles.countActiveText]}>Count-in</Text>
         </Pressable>
       </View>
 
       <RangeSlider value={position} min={0} max={Math.max(duration, 1)} onChange={onSeek} label="TIMELINE" valueLabel={`${formatTime(position)} / ${formatTime(duration)}`} />
 
       <View style={styles.loopRow}>
-        <Text style={type.caption}>A/B LOOP</Text>
+        <Text style={type.caption}>A/B loop</Text>
         <View style={styles.loopButtons}>
           <Pressable accessibilityRole="button" accessibilityLabel={loopStart === null ? 'Set loop start' : 'Move loop start'} onPress={() => onSetLoopPoint('start')} style={[styles.loopButton, loopStart !== null && styles.loopButtonSet]}>
             <Text style={[type.mono, loopStart !== null && styles.activeText]}>A{loopStart === null ? '' : ' ' + formatTime(loopStart)}</Text>
@@ -60,15 +61,15 @@ export function TransportControls({ position, duration, state, speed, countIn, o
             <Text style={[type.mono, loopEnd !== null && styles.activeText]}>B{loopEnd === null ? '' : ' ' + formatTime(loopEnd)}</Text>
           </Pressable>
           <Pressable accessibilityRole="switch" accessibilityLabel="Toggle A/B loop" accessibilityState={{ checked: loopEnabled, disabled: !canLoop }} disabled={!canLoop} onPress={onToggleLoop} style={[styles.loopButton, loopEnabled && styles.loopButtonActive, !canLoop && styles.disabledButton]}>
-            <Text style={[type.mono, loopEnabled && styles.activeText]}>LOOP</Text>
+            <Text style={[type.mono, loopEnabled && styles.activeText]}>Loop</Text>
           </Pressable>
         </View>
       </View>
 
       <View style={styles.bottomRow}>
-        <Text style={type.caption}>{playing ? 'PLAYING' : state === 'paused' ? 'PAUSED' : 'READY'}</Text>
+        <Text style={type.caption}>{playing ? 'Playing' : state === 'paused' ? 'Paused' : 'Ready'}</Text>
         <View style={styles.speedWrap}>
-          <Text style={type.caption}>SPEED</Text>
+          <Text style={type.caption}>Speed</Text>
           <View style={styles.speedRow}>
             {[0.25, 0.5, 0.75, 1].map((option) => (
                 <Pressable key={option} accessibilityRole="button" accessibilityLabel={`Set playback speed to ${Math.round(option * 100)} percent`} accessibilityState={{ selected: speed === option }} onPress={() => onSpeed(option)} hitSlop={2} style={({ pressed }) => [styles.speed, speed === option && styles.speedActive, pressed && styles.pressed]}>

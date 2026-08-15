@@ -1,47 +1,38 @@
+/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import React from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppTab } from '@/types';
 import { colors, layout, type } from '@/theme';
 
 export function TabBar({ activeTab, onChange }: { activeTab: AppTab; onChange: (tab: AppTab) => void }) {
-  const { width } = useWindowDimensions();
-  const compact = width < 340;
-
   return (
     <View style={styles.bar}>
       <View style={styles.barInner}>
-        <Tab compact={compact} label="TUNER" hint="01" active={activeTab === 'tuner'} onPress={() => onChange('tuner')} />
-        <Tab compact={compact} label="PLAYER" hint="02" active={activeTab === 'player'} onPress={() => onChange('player')} />
-        <Tab compact={compact} label="LIBRARY" hint="03" active={activeTab === 'library'} onPress={() => onChange('library')} />
+        <Tab label="Tune" active={activeTab === 'tuner'} onPress={() => onChange('tuner')} />
+        <Tab label="Player" active={activeTab === 'player'} onPress={() => onChange('player')} />
+        <Tab label="Library" active={activeTab === 'library'} onPress={() => onChange('library')} />
       </View>
     </View>
   );
 }
 
-function Tab({ label, hint, active, compact, onPress }: { label: string; hint: string; active: boolean; compact: boolean; onPress: () => void }) {
+function Tab({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
-    <Pressable accessibilityRole="tab" accessibilityLabel={`${hint} ${label}`} accessibilityState={{ selected: active }} onPress={onPress} hitSlop={4} style={({ pressed }) => [styles.tab, compact && styles.tabCompact, active && styles.activeTab, pressed && styles.pressed]}>
+    <Pressable accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: active }} onPress={onPress} hitSlop={4} style={({ pressed }) => [styles.tab, active && styles.activeTab, pressed && styles.pressed]}>
       <View style={[styles.tabMarker, active && styles.activeMarker]} />
-      <View style={[styles.tabCopy, compact && styles.tabCopyCompact]}>
-        <Text style={[styles.hint, active && styles.activeText]}>{hint}</Text>
-        <Text numberOfLines={1} style={[type.section, compact && styles.compactLabel, active && styles.activeText]}>{label}</Text>
-      </View>
+      <Text numberOfLines={1} style={[type.body, styles.label, active && styles.activeText]}>{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  bar: { height: layout.tabBarHeight, backgroundColor: colors.paperRaised, borderTopWidth: 1, borderColor: colors.rule, paddingHorizontal: layout.screenPadding, paddingTop: 10, paddingBottom: 12 },
-  barInner: { flex: 1, flexDirection: 'row', gap: 10 },
-  tab: { flex: 1, minHeight: 56, paddingHorizontal: 14, borderWidth: 1, borderColor: 'transparent', borderRadius: layout.radiusControl, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  tabCompact: { flexBasis: 0, minWidth: 0, paddingHorizontal: 8, gap: 6 },
-  activeTab: { backgroundColor: colors.paperSoft, borderColor: colors.ruleStrong },
-  tabMarker: { width: 6, height: 30, borderRadius: 3, backgroundColor: colors.rule },
+  bar: { height: layout.tabBarHeight, backgroundColor: colors.paper, borderTopWidth: 1, borderColor: colors.rule, paddingHorizontal: layout.screenPadding, paddingTop: 8, paddingBottom: 10 },
+  barInner: { flex: 1, flexDirection: 'row', gap: 4 },
+  tab: { flex: 1, minHeight: 56, borderRadius: layout.radiusPill, alignItems: 'center', justifyContent: 'center', gap: 6 },
+  activeTab: { backgroundColor: colors.paperRaised },
+  tabMarker: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.ruleStrong },
   activeMarker: { backgroundColor: colors.accent },
-  tabCopy: { gap: 4 },
-  tabCopyCompact: { flex: 1, minWidth: 0, flexShrink: 1, gap: 2 },
-  hint: { ...type.mono, color: colors.neutral, fontSize: 10 },
-  compactLabel: { fontSize: 12, letterSpacing: 0.8 },
-  activeText: { color: colors.accentBright },
+  label: { color: colors.muted, fontSize: 13, fontWeight: '700', letterSpacing: 0.2 },
+  activeText: { color: colors.ink },
   pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
 });

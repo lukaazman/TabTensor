@@ -42,7 +42,7 @@ The runtime uses the platform sans family for display and body roles, with a pla
 - Body: platform sans, weight 400–600
 - Mono: platform monospace, weight 500–700
 - Display tracking: tight for readouts, open for labels
-- Type scale anchor: display readout is 78px on the tuner surface; screen titles are 30px.
+- Type scale anchor: display readout is 78px on the tuner surface; screen titles are 32px.
 
 ## Spacing
 
@@ -68,6 +68,13 @@ The runtime uses the platform sans family for display and body roles, with a pla
 - Primary action: compact filled signal-red control, single-line label
 - Secondary action: graphite surface with a visible rule
 - Quiet action: transparent surface with an understated rule and explicit verb
+
+## Information hierarchy
+
+- Screen and section names are words, not ordinal labels.
+- Decorative numbers such as `01 / TUNER`, `02 / PLAYER`, or `01 / 03` are not part of the UI.
+- Keep numbers only when they change the user's decision: pitch, tempo, time, measure, fret/string position, file counts, or chord-voicing position.
+- Details belong behind the section they describe; the first view should show the next useful action.
 
 ## Per-page allowances
 
