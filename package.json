@@ -10,7 +10,9 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test:follow-tab": "node scripts/test-follow-tab.mjs",
+    "test:library": "node scripts/test-library.mjs"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^2.2.0",

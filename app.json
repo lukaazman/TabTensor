@@ -8,7 +8,10 @@
     "scheme": "tabtensor",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tabtensor.app"
+      "bundleIdentifier": "com.tabtensor.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "TabTensor uses the microphone only to detect guitar pitch."
+      }
     },
     "android": {
       "package": "com.tabtensor.app"

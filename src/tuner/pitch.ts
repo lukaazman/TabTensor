@@ -48,9 +48,15 @@ export function rmsLevel(samples: Float32Array): number {
  * kept on the JS side so the audio input adapter can be swapped without
  * changing tuner behaviour.
  */
-export function detectFundamental(samples: Float32Array, sampleRate: number): { frequency: number; confidence: number; level: number } | null {
+export function detectFundamental(
+  samples: Float32Array,
+  sampleRate: number,
+  minimumLevel = 0.006,
+  minFrequency = 65,
+  maxFrequency = 1000,
+): { frequency: number; confidence: number; level: number } | null {
   const level = rmsLevel(samples);
-  if (level < 0.006 || samples.length < 512) return null;
+  if (level < minimumLevel || samples.length < 512) return null;
 
   const working = new Float32Array(samples.length);
   let mean = 0;
@@ -58,8 +64,7 @@ export function detectFundamental(samples: Float32Array, sampleRate: number): { 
   mean /= samples.length;
   for (let index = 0; index < samples.length; index += 1) working[index] = samples[index] - mean;
 
-  const minFrequency = 65;
-  const maxFrequency = 1000;
+
   const minLag = Math.max(2, Math.floor(sampleRate / maxFrequency));
   const maxLag = Math.min(Math.floor(sampleRate / minFrequency), Math.floor(samples.length * 0.8));
   let bestLag = -1;

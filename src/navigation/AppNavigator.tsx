@@ -6,6 +6,7 @@ import { TabBar } from '@/components/TabBar';
 import { PlayerScreen } from '@/screens/PlayerScreen';
 import { PlaybackScreen } from '@/screens/PlaybackScreen';
 import { TunerScreen } from '@/screens/TunerScreen';
+import { LibraryScreen } from '@/screens/LibraryScreen';
 
 export function AppNavigator() {
   const [activeTab, setActiveTab] = useState<AppTab>('tuner');
@@ -22,7 +23,7 @@ export function AppNavigator() {
   return (
     <View style={styles.root}>
       <View style={styles.content}>
-        {activeTab === 'tuner' ? <TunerScreen /> : <PlayerScreen onOpenSong={(nextSong) => { setSong(nextSong); setActiveTab('player'); }} />}
+        {activeTab === 'tuner' ? <TunerScreen /> : activeTab === 'player' ? <PlayerScreen onOpenSong={(nextSong) => { setSong(nextSong); setActiveTab('player'); }} /> : <LibraryScreen onOpenSong={(nextSong) => { setSong(nextSong); setActiveTab('player'); }} />}
       </View>
       <TabBar activeTab={activeTab} onChange={setActiveTab} />
     </View>

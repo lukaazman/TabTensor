@@ -1,4 +1,4 @@
-import { PitchEngine, PitchEngineCallbacks } from './PitchEngine';
+import { PitchEngine, PitchEngineCallbacks, PitchEngineOptions } from './PitchEngine';
 import { detectFundamental } from '../pitch';
 import { hasNativeAudioApi } from './NativeAudioAvailability';
 
@@ -23,7 +23,7 @@ export class NativePitchEngine implements PitchEngine {
     }
   }
 
-  async start(callbacks: PitchEngineCallbacks): Promise<void> {
+  async start(callbacks: PitchEngineCallbacks, options: PitchEngineOptions = {}): Promise<void> {
     if (!this.isAvailable() || !this.audioApi) {
       throw new Error('Microphone audio module is unavailable. Build TabTensor with the native development client.');
     }
@@ -40,17 +40,26 @@ export class NativePitchEngine implements PitchEngine {
     });
 
     if (!this.recorder) this.recorder = new this.audioApi.AudioRecorder();
+    const sampleRate = options.sampleRate ?? 44100;
+    const bufferLength = options.bufferLength ?? 4096;
+    const channelCount = options.channelCount ?? 1;
     const callbackResult = this.recorder.onAudioReady(
       {
-        sampleRate: 44100,
-        bufferLength: 4096,
-        channelCount: 1,
+        sampleRate,
+        bufferLength,
+        channelCount,
       },
       ({ buffer, numFrames }) => {
         if (!this.running || !this.callbacks) return;
         const channel = buffer.getChannelData(0);
         const samples = channel.length === numFrames ? channel : channel.slice(0, numFrames);
-        const detected = detectFundamental(samples, 44100);
+        const detected = detectFundamental(
+          samples,
+          sampleRate,
+          options.minimumLevel,
+          options.minFrequency,
+          options.maxFrequency,
+        );
         if (!detected) return;
         this.callbacks.onReading({
           frequency: detected.frequency,

@@ -1,6 +1,6 @@
 /* Hallmark · genre: modern-minimal · tone: technical · anchor hue: warm red · macrostructure: Workbench */
 import React, { useEffect, useState } from 'react';
-import { DimensionValue, Linking, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextInput, View, ViewStyle, useWindowDimensions } from 'react-native';
+import { DimensionValue, Image, ImageSourcePropType, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import { ActionButton } from '@/components/ActionButton';
 import { ModalSheet } from '@/components/ModalSheet';
@@ -70,12 +70,14 @@ export function TunerScreen() {
           <Text style={[type.mono, { color: statusColor }]}>{statusText}</Text>
         </View>
 
-        <PitchGrid cents={tuner.detection?.cents} noteName={tuner.detection?.noteName} detection={Boolean(tuner.detection)} inTune={inTune} statusColor={statusColor} />
+        <View style={[styles.tuningPanel, compact && styles.tuningPanelCompact]}>
+          <PitchGrid cents={tuner.detection?.cents} noteName={tuner.detection?.noteName} detection={Boolean(tuner.detection)} inTune={inTune} statusColor={statusColor} />
 
-        <View style={[styles.instrumentStage, compact && styles.instrumentStageCompact]}>
-          <StringColumn strings={tuning.strings.slice(0, Math.ceil(tuning.strings.length / 2))} startIndex={0} selectedIndex={selectedIndex} onSelect={tuner.selectString} />
-          <InstrumentIllustration instrument={instrument} stringCount={tuning.strings.length} selectedIndex={selectedIndex} />
-          <StringColumn strings={tuning.strings.slice(Math.ceil(tuning.strings.length / 2))} startIndex={Math.ceil(tuning.strings.length / 2)} selectedIndex={selectedIndex} onSelect={tuner.selectString} align="right" />
+          <View style={[styles.instrumentStage, compact && styles.instrumentStageCompact]}>
+            <StringColumn strings={tuning.strings.slice(0, Math.ceil(tuning.strings.length / 2))} startIndex={0} selectedIndex={selectedIndex} onSelect={tuner.selectString} />
+            <InstrumentIllustration instrument={instrument} stringCount={tuning.strings.length} compact={compact} />
+            <StringColumn strings={tuning.strings.slice(Math.ceil(tuning.strings.length / 2))} startIndex={Math.ceil(tuning.strings.length / 2)} selectedIndex={selectedIndex} onSelect={tuner.selectString} align="right" />
+          </View>
         </View>
 
         <View style={styles.surfaceBottomline}>
@@ -155,6 +157,10 @@ function PitchGrid({ cents, noteName, detection, inTune, statusColor }: { cents?
         {Array.from({ length: 5 }, (_, index) => <View key={`h-${index}`} style={[styles.gridHorizontal, { top: `${index * 25}%` }]} />)}
         {Array.from({ length: 9 }, (_, index) => <View key={`v-${index}`} style={[styles.gridVertical, { left: `${index * 12.5}%` }]} />)}
       </View>
+      <View style={styles.directionRow}>
+        <View style={[styles.directionBlock, leftActive && styles.directionActive]}><Text style={[styles.directionArrow, leftActive && styles.directionTextActive]}>←</Text><Text style={[type.mono, styles.directionLabel, leftActive && styles.directionTextActive]}>TUNE UP</Text></View>
+        <View style={[styles.directionBlock, styles.directionBlockRight, rightActive && styles.directionActive]}><Text style={[type.mono, styles.directionLabel, rightActive && styles.directionTextActive]}>TUNE DOWN</Text><Text style={[styles.directionArrow, rightActive && styles.directionTextActive]}>→</Text></View>
+      </View>
       <View style={styles.pitchReadout}>
         <View style={styles.pitchNoteBlock}>
           <Text style={[styles.pitchNote, { color: inTune ? colors.success : colors.ink }]}>{noteName ?? '—'}</Text>
@@ -169,18 +175,13 @@ function PitchGrid({ cents, noteName, detection, inTune, statusColor }: { cents?
         <View style={styles.pitchTrackCenter} />
         <View style={[styles.pitchMarker, { left: markerPosition, backgroundColor: inTune ? colors.success : statusColor }]} />
       </View>
-      <View style={styles.directionRow}>
-        <View style={[styles.directionBlock, leftActive && styles.directionActive]}><Text style={[styles.directionArrow, leftActive && styles.directionTextActive]}>←</Text><Text style={[type.mono, styles.directionLabel, leftActive && styles.directionTextActive]}>TUNE UP</Text></View>
-        <Text style={[type.mono, styles.directionZero, inTune && styles.directionZeroActive]}>ON TARGET</Text>
-        <View style={[styles.directionBlock, styles.directionBlockRight, rightActive && styles.directionActive]}><Text style={[type.mono, styles.directionLabel, rightActive && styles.directionTextActive]}>TUNE DOWN</Text><Text style={[styles.directionArrow, rightActive && styles.directionTextActive]}>→</Text></View>
-      </View>
     </View>
   );
 }
 
 function StringColumn({ strings, startIndex, selectedIndex, onSelect, align = 'left' }: { strings: string[]; startIndex: number; selectedIndex: number; onSelect: (index: number) => void; align?: 'left' | 'right' }) {
   return (
-    <View style={[styles.stringColumn, align === 'right' && styles.stringColumnRight]}>
+    <View style={[styles.stringColumn, strings.length === 2 && styles.stringColumnPair, strings.length === 1 && styles.stringColumnSingle, align === 'right' && styles.stringColumnRight]}>
       {strings.map((stringName, index) => {
         const actualIndex = startIndex + index;
         const selected = selectedIndex === actualIndex;
@@ -195,36 +196,31 @@ function StringColumn({ strings, startIndex, selectedIndex, onSelect, align = 'l
   );
 }
 
-function InstrumentIllustration({ instrument, stringCount, selectedIndex }: { instrument: InstrumentDefinition; stringCount: number; selectedIndex: number }) {
-  const bodyStyle = bodyStyleFor(instrument.bodyStyle);
-  const stringPositions: DimensionValue[] = Array.from({ length: stringCount }, (_, index) => `${18 + (index * 64) / Math.max(1, stringCount - 1)}%` as DimensionValue);
+function InstrumentIllustration({ instrument, stringCount, compact }: { instrument: InstrumentDefinition; stringCount: number; compact: boolean }) {
+  const source = instrumentPhotoFor(instrument);
   return (
-    <View style={styles.instrumentIllustration} accessibilityLabel={`${instrument.name}, ${stringCount} strings`}>
-      <View style={[styles.instrumentHeadstock, instrument.bodyStyle === 'banjo' && styles.banjoHeadstock]} />
-      <View style={styles.instrumentNeck}>
-        {Array.from({ length: 7 }, (_, index) => <View key={index} style={[styles.fret, { top: 14 + index * 13 }]} />)}
-      </View>
-      <View style={[styles.instrumentBody, bodyStyle]}>
-        {instrument.bodyStyle === 'electric' ? <View style={styles.pickupStack}><View style={styles.pickup} /><View style={styles.pickup} /></View> : <View style={styles.soundHole} />}
-        <View style={styles.instrumentBridge} />
-      </View>
-      {stringPositions.map((left, index) => <View key={index} style={[styles.instrumentString, { left }, selectedIndex === index && styles.instrumentStringSelected]} />)}
+    <View style={[styles.instrumentIllustration, compact && styles.instrumentIllustrationCompact]} accessibilityLabel={instrument.name + ', ' + stringCount + ' strings, tuning machines photo'}>
+      <Image source={source} style={styles.instrumentPhoto} resizeMode="contain" />
     </View>
   );
 }
 
-function bodyStyleFor(bodyStyle: InstrumentDefinition['bodyStyle']): StyleProp<ViewStyle> {
-  switch (bodyStyle) {
-    case 'electric': return styles.instrumentBodyElectric;
-    case 'ukulele': return styles.instrumentBodyUkulele;
-    case 'bass': return styles.instrumentBodyBass;
-    case 'mandolin': return styles.instrumentBodyMandolin;
-    case 'violin': return styles.instrumentBodyViolin;
-    case 'banjo': return styles.instrumentBodyBanjo;
-    default: return styles.instrumentBodyGuitar;
-  }
+function instrumentPhotoFor(instrument: InstrumentDefinition): ImageSourcePropType {
+  const byId: Partial<Record<InstrumentId, ImageSourcePropType>> = {
+    'classical-guitar': require('../../assets/instruments/classical-guitar.png'),
+  };
+  if (byId[instrument.id]) return byId[instrument.id] as ImageSourcePropType;
+  const byBodyStyle: Record<InstrumentDefinition['bodyStyle'], ImageSourcePropType> = {
+    guitar: require('../../assets/instruments/acoustic-guitar.png'),
+    electric: require('../../assets/instruments/electric-strat.png'),
+    ukulele: require('../../assets/instruments/ukulele.png'),
+    bass: require('../../assets/instruments/bass.png'),
+    mandolin: require('../../assets/instruments/mandolin.png'),
+    violin: require('../../assets/instruments/violin.png'),
+    banjo: require('../../assets/instruments/banjo.png'),
+  };
+  return byBodyStyle[instrument.bodyStyle];
 }
-
 function InstrumentPicker({ visible, selectedId, onClose, onSelect }: { visible: boolean; selectedId: InstrumentId; onClose: () => void; onSelect: (instrument: InstrumentDefinition) => void }) {
   return (
     <ModalSheet visible={visible} onClose={onClose}>
@@ -358,21 +354,23 @@ const styles = StyleSheet.create({
   autoKnobActive: { alignSelf: 'flex-end', backgroundColor: colors.ink },
   tunerSurface: { backgroundColor: colors.paperRaised, borderRadius: layout.radiusCard, borderWidth: 1, borderColor: colors.ruleStrong, padding: 14, overflow: 'hidden' },
   surfaceTopline: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, gap: 10 },
-  pitchGrid: { height: 188, borderRadius: layout.radiusControl, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.rule, overflow: 'hidden', position: 'relative', padding: 12, justifyContent: 'space-between' },
+  tuningPanel: { height: 468, borderRadius: layout.radiusControl, backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.rule, overflow: 'hidden', position: 'relative', zIndex: 1 },
+  tuningPanelCompact: { height: 438 },
+  pitchGrid: { height: 188, borderRadius: 0, backgroundColor: 'transparent', borderWidth: 0, borderColor: 'transparent', overflow: 'visible', position: 'relative', zIndex: 1, padding: 12, justifyContent: 'space-between' },
   gridLines: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, opacity: 0.72 },
   gridHorizontal: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: colors.rule },
   gridVertical: { position: 'absolute', top: 0, bottom: 0, width: 1, backgroundColor: colors.rule },
-  pitchReadout: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-start', position: 'relative', zIndex: 1 },
+  pitchReadout: { flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-start', position: 'relative', zIndex: 1, transform: [{ translateY: -8 }] },
   pitchNoteBlock: { alignItems: 'center', gap: 1 },
   pitchNote: { fontSize: 50, lineHeight: 54, fontWeight: '800', letterSpacing: -3 },
   pitchState: { fontSize: 9, letterSpacing: 1.1 },
   pitchCenterLabel: { position: 'absolute', right: 0, top: 2, color: colors.muted },
-  waveform: { height: 38, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, zIndex: 1 },
+  waveform: { height: 38, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, zIndex: 1, transform: [{ translateY: -8 }] },
   waveBar: { width: 2, borderRadius: 2, minHeight: 4 },
-  pitchTrack: { height: 6, borderRadius: 3, backgroundColor: colors.paperSoft, position: 'relative', zIndex: 1 },
+  pitchTrack: { height: 6, borderRadius: 3, backgroundColor: colors.paperSoft, position: 'relative', zIndex: 1, transform: [{ translateY: -8 }] },
   pitchTrackCenter: { position: 'absolute', left: '50%', top: -4, bottom: -4, width: 1, backgroundColor: colors.ink, opacity: 0.7 },
   pitchMarker: { position: 'absolute', top: -3, bottom: -3, width: 3, marginLeft: -1.5, borderRadius: 2 },
-  directionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', zIndex: 1, gap: 6 },
+  directionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', zIndex: 1, gap: 6, marginBottom: 4 },
   directionBlock: { minWidth: 66, flexDirection: 'row', alignItems: 'center', gap: 4 },
   directionBlockRight: { justifyContent: 'flex-end' },
   directionActive: { opacity: 1 },
@@ -381,36 +379,25 @@ const styles = StyleSheet.create({
   directionTextActive: { color: colors.accentBright },
   directionZero: { color: colors.neutral, fontSize: 8, letterSpacing: 0.7 },
   directionZeroActive: { color: colors.success },
-  instrumentStage: { height: 246, flexDirection: 'row', alignItems: 'stretch', justifyContent: 'center', gap: 8, paddingTop: 10 },
-  instrumentStageCompact: { height: 224, gap: 4 },
-  stringColumn: { width: 55, justifyContent: 'space-around', alignItems: 'flex-start', paddingVertical: 8 },
+  instrumentStage: { height: 330, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', gap: 0, marginTop: -50, paddingTop: 0, position: 'relative', zIndex: 2 },
+  instrumentStageCompact: { height: 294, marginTop: -44 },
+  stringColumn: { width: 39, height: 154, justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 0, marginTop: 32 },
+  stringColumnPair: { height: 98, marginTop: 88 },
+  stringColumnSingle: { height: 50, marginTop: 108 },
   stringColumnRight: { alignItems: 'flex-end' },
-  stringBadge: { minWidth: 47, minHeight: 43, paddingHorizontal: 7, borderRadius: layout.radiusControl, borderWidth: 1, borderColor: 'transparent', justifyContent: 'center', alignItems: 'flex-start', gap: 1 },
+  stringBadge: { minWidth: 38, minHeight: 42, paddingHorizontal: 3, borderRadius: layout.radiusControl, borderWidth: 1, borderColor: 'transparent', justifyContent: 'center', alignItems: 'flex-start', gap: 1 },
   stringBadgeRight: { alignItems: 'flex-end' },
   stringBadgeSelected: { backgroundColor: colors.accentWash, borderColor: colors.accent },
   stringBadgeNote: { color: colors.inkMuted, fontSize: 21, lineHeight: 22, fontWeight: '800' },
   stringBadgeNoteSelected: { color: colors.accentBright },
   stringBadgeOctave: { color: colors.neutral, fontSize: 9 },
   stringBadgeOctaveSelected: { color: colors.accentBright },
-  instrumentIllustration: { width: 130, height: 236, position: 'relative', alignItems: 'center' },
-  instrumentHeadstock: { position: 'absolute', top: 0, width: 35, height: 28, borderRadius: 8, backgroundColor: colors.paperSoft, borderWidth: 1, borderColor: colors.ruleStrong, zIndex: 2 },
-  banjoHeadstock: { width: 42, borderRadius: 4 },
-  instrumentNeck: { position: 'absolute', top: 22, width: 30, height: 112, backgroundColor: colors.paperSoft, borderLeftWidth: 1, borderRightWidth: 1, borderColor: colors.ruleStrong, zIndex: 1 },
-  fret: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: colors.ruleStrong },
-  instrumentBody: { position: 'absolute', top: 104, width: 106, height: 128, borderWidth: 1, borderColor: colors.accent, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
-  instrumentBodyGuitar: { borderRadius: 40, backgroundColor: colors.instrumentWood, transform: [{ scaleX: 0.78 }] },
-  instrumentBodyElectric: { width: 100, height: 117, top: 108, borderRadius: 24, backgroundColor: colors.paperSoft, borderColor: colors.ruleStrong, transform: [{ skewX: '-6deg' }] },
-  instrumentBodyUkulele: { width: 84, height: 112, top: 112, borderRadius: 36, backgroundColor: colors.instrumentWoodLight, transform: [{ scaleX: 0.84 }] },
-  instrumentBodyBass: { width: 112, height: 136, top: 98, borderRadius: 42, backgroundColor: colors.instrumentWoodDeep, transform: [{ scaleX: 0.76 }] },
-  instrumentBodyMandolin: { width: 98, height: 116, top: 108, borderRadius: 28, backgroundColor: colors.instrumentWoodMid, transform: [{ scaleX: 0.8 }] },
-  instrumentBodyViolin: { width: 88, height: 128, top: 102, borderRadius: 33, backgroundColor: colors.instrumentWoodLight, transform: [{ scaleX: 0.7 }] },
-  instrumentBodyBanjo: { width: 112, height: 112, top: 108, borderRadius: 56, backgroundColor: colors.paperSoft, borderColor: colors.ruleStrong },
-  soundHole: { width: 25, height: 25, borderRadius: 13, borderWidth: 1, borderColor: colors.accentBright, backgroundColor: colors.paper },
-  pickupStack: { gap: 12, alignItems: 'center' },
-  pickup: { width: 38, height: 7, borderRadius: 3, backgroundColor: colors.accent },
-  instrumentBridge: { position: 'absolute', bottom: 25, width: 42, height: 4, borderRadius: 2, backgroundColor: colors.inkMuted, opacity: 0.8 },
-  instrumentString: { position: 'absolute', top: 12, bottom: 3, width: 1, backgroundColor: colors.inkMuted, opacity: 0.78, zIndex: 3 },
-  instrumentStringSelected: { width: 3, marginLeft: -1, backgroundColor: colors.accentBright, opacity: 1 },
+  instrumentIllustration: { width: 176, height: 330, position: 'relative', overflow: 'visible', backgroundColor: 'transparent' },
+  instrumentIllustrationCompact: { width: 158, height: 294 },
+  instrumentPhoto: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, width: '100%', height: '100%' },
+
+
+
   surfaceBottomline: { borderTopWidth: 1, borderColor: colors.rule, paddingTop: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
   bottomReadout: { gap: 2, flex: 1, minWidth: 0 },
   targetNote: { color: colors.ink, fontSize: 22, lineHeight: 26, fontWeight: '800' },

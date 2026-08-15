@@ -54,10 +54,11 @@ type Relation = {
   top: number;
 };
 
-export function ScoreView({ song, track, position, onSeek }: { song: GuitarProSong; track: PlaybackTrack; position: number; onSeek: (position: number) => void }) {
+export function ScoreView({ song, track, position, onSeek, scrollToken = 0 }: { song: GuitarProSong; track: PlaybackTrack; position: number; onSeek: (position: number) => void; scrollToken?: number }) {
   const showTablature = song.capabilities.tablature && track.tablature !== false;
   const scrollRef = useRef<ScrollView | null>(null);
   const previousMeasureRef = useRef(-1);
+  const previousPracticeScrollRef = useRef(0);
   const [viewportWidth, setViewportWidth] = useState(1);
   const [scrollLeft, setScrollLeft] = useState(0);
 
@@ -130,10 +131,13 @@ export function ScoreView({ song, track, position, onSeek }: { song: GuitarProSo
     : 0;
 
   useEffect(() => {
-    if (!currentMeasure || viewportWidth <= 1 || currentMeasure.index === previousMeasureRef.current) return;
+    const measureChanged = currentMeasure?.index !== previousMeasureRef.current;
+    const practiceAdvanced = scrollToken !== previousPracticeScrollRef.current;
+    if (!currentMeasure || viewportWidth <= 1 || (!measureChanged && !practiceAdvanced)) return;
     previousMeasureRef.current = currentMeasure.index;
+    previousPracticeScrollRef.current = scrollToken;
     scrollRef.current?.scrollTo({ x: Math.max(0, playheadLeft - viewportWidth * 0.34), animated: true });
-  }, [currentMeasure, playheadLeft, viewportWidth]);
+  }, [currentMeasure, playheadLeft, scrollToken, viewportWidth]);
 
   return (
     <View style={styles.wrap}>

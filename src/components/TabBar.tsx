@@ -12,6 +12,7 @@ export function TabBar({ activeTab, onChange }: { activeTab: AppTab; onChange: (
       <View style={styles.barInner}>
         <Tab compact={compact} label="TUNER" hint="01" active={activeTab === 'tuner'} onPress={() => onChange('tuner')} />
         <Tab compact={compact} label="PLAYER" hint="02" active={activeTab === 'player'} onPress={() => onChange('player')} />
+        <Tab compact={compact} label="LIBRARY" hint="03" active={activeTab === 'library'} onPress={() => onChange('library')} />
       </View>
     </View>
   );

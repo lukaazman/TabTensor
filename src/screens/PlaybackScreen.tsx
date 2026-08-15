@@ -9,6 +9,8 @@ import { useGuitarProPlayer } from '@/player/hooks/useGuitarProPlayer';
 import { ScoreView } from '@/player/components/ScoreView';
 import { TrackRow } from '@/player/components/TrackRow';
 import { TransportControls } from '@/player/components/TransportControls';
+import { FollowTabPanel } from '@/player/components/FollowTabPanel';
+import { useFollowTab } from '@/player/followTab/useFollowTab';
 
 export function PlaybackScreen({ song, onBack }: { song: GuitarProSong; onBack: () => void }) {
   useKeepAwake('tabtensor-playback');
@@ -21,6 +23,39 @@ export function PlaybackScreen({ song, onBack }: { song: GuitarProSong; onBack: 
       ?? song.tracks[0],
     [player.snapshot.tracks, selectedTrackId, song.tracks],
   );
+
+  const follow = useFollowTab({
+    track: selectedTrack,
+    position: player.snapshot.position,
+    duration: song.duration,
+    tempo: song.tempo,
+    timeSignature: song.timeSignature,
+    countIn: player.countIn,
+    loopStart: player.loopEnabled ? player.loopStart : null,
+    loopEnd: player.loopEnabled ? player.loopEnd : null,
+    onSeek: player.seek,
+  });
+  const transportState = follow.enabled ? follow.transportState : player.snapshot.state;
+  const toggleFollow = async () => {
+    if (!follow.enabled && player.snapshot.state === 'playing') await player.pause();
+    follow.toggle();
+  };
+  const handlePlay = () => {
+    if (follow.enabled) void follow.resume();
+    else void player.play();
+  };
+  const handlePause = () => {
+    if (follow.enabled) void follow.pause();
+    else void player.pause();
+  };
+  const handleStop = () => {
+    if (follow.enabled) void follow.stop();
+    void player.stop();
+  };
+  const handleSeek = (nextPosition: number) => {
+    if (follow.enabled) void follow.seekTo(nextPosition);
+    else void player.seek(nextPosition);
+  };
 
   return (
     <ScreenShell>
@@ -59,19 +94,27 @@ export function PlaybackScreen({ song, onBack }: { song: GuitarProSong; onBack: 
       <TransportControls
         position={player.snapshot.position}
         duration={song.duration}
-        state={player.snapshot.state}
+        state={transportState}
         speed={player.snapshot.speed}
         countIn={player.countIn}
         onToggleCountIn={() => player.setCountIn((current) => !current)}
-        onPlay={() => void player.play()}
-        onPause={() => void player.pause()}
-        onStop={() => void player.stop()}
-        onSeek={(position) => void player.seek(position)}
+        onPlay={handlePlay}
+        onPause={handlePause}
+        onStop={handleStop}
+        onSeek={handleSeek}
         onSpeed={(speed) => void player.setSpeed(speed)}
+        loopStart={player.loopStart}
+        loopEnd={player.loopEnd}
+        loopEnabled={player.loopEnabled}
+        canLoop={player.canLoop}
+        onSetLoopPoint={player.setLoopPoint}
+        onToggleLoop={player.toggleLoop}
       />
 
+      <FollowTabPanel follow={follow} onToggle={toggleFollow} />
+
       {selectedTrack ? (
-        <ScoreView song={song} track={selectedTrack} position={player.snapshot.position} onSeek={(position) => void player.seek(position)} />
+        <ScoreView song={song} track={selectedTrack} position={player.snapshot.position} onSeek={handleSeek} scrollToken={follow.enabled ? follow.advanceToken : 0} />
       ) : (
         <View style={styles.error}><Text style={type.caption}>No tracks detected.</Text></View>
       )}

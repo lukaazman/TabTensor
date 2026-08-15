@@ -1,4 +1,4 @@
-export type AppTab = 'tuner' | 'player';
+export type AppTab = 'tuner' | 'player' | 'library';
 
 export type InstrumentId =
   | 'acoustic-guitar'
