@@ -13,7 +13,7 @@ export function TrackRow({ track, selected, onSelect, onMute, onVolume }: { trac
         <View style={styles.nameWrap}><Text style={type.body} numberOfLines={1}>{track.name}</Text><Text style={type.caption}>{track.notes.length} notes{track.instrument ? ` · ${track.instrument}` : ''}</Text></View>
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel={`${track.muted ? 'Unmute' : 'Mute'} ${track.name}`} onPress={onMute} hitSlop={2} style={({ pressed }) => [styles.mute, track.muted && styles.mutedActive, pressed && styles.pressed]}><Text style={[type.mono, track.muted && styles.mutedText]}>{track.muted ? 'Muted' : 'Mute'}</Text></Pressable>
-      <View style={styles.slider}><RangeSlider value={track.volume} onChange={onVolume} label="Volume" valueLabel={`${Math.round(track.volume * 100)}%`} /></View>
+      <View style={styles.slider}><RangeSlider value={track.volume} onChange={onVolume} label={`Volume for ${track.name}`} valueLabel={`${Math.round(track.volume * 100)}%`} /></View>
     </View>
   );
 }

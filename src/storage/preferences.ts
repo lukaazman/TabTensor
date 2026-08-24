@@ -1,5 +1,6 @@
 import { TunerPreferences } from '@/types';
 import { readJson, writeJson } from './localStorage';
+import { sanitizeTunerPreferences } from './sanitizers';
 
 const DEFAULT_PREFERENCES: TunerPreferences = {
   instrumentId: 'acoustic-guitar',
@@ -11,17 +12,12 @@ const DEFAULT_PREFERENCES: TunerPreferences = {
 };
 
 export async function loadTunerPreferences(): Promise<TunerPreferences> {
-  const saved = await readJson<Partial<TunerPreferences>>('tuner-preferences', {});
-  return {
-    ...DEFAULT_PREFERENCES,
-    ...saved,
-    instrumentId: saved.instrumentId ?? DEFAULT_PREFERENCES.instrumentId,
-    customTunings: saved.customTunings ?? [],
-  };
+  const saved = await readJson<unknown>('tuner-preferences', {});
+  return sanitizeTunerPreferences(saved, DEFAULT_PREFERENCES);
 }
 
 export async function saveTunerPreferences(preferences: TunerPreferences): Promise<void> {
-  await writeJson('tuner-preferences', preferences);
+  await writeJson('tuner-preferences', sanitizeTunerPreferences(preferences, DEFAULT_PREFERENCES));
 }
 
 export { DEFAULT_PREFERENCES };

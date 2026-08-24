@@ -8,7 +8,8 @@ import { SectionHeader } from '@/components/SectionHeader';
 import { colors, layout, type } from '@/theme';
 import { GuitarProSong, RecentFile } from '@/types';
 import { forgetFile, loadRecentFiles, rememberFile } from '@/storage/recentFiles';
-import { isFileAccessible, pickPlayerFile } from '@/player/fileHandling';
+import { cleanupImportedPlayerFile, isFileAccessible, pickPlayerFile, releaseImportedPlayerFile } from '@/player/fileHandling';
+import { toUserFacingPlayerError } from '@/player/playerError';
 import { parsePlayerFile } from '@/player/parser/PlayerParser';
 import { formatOpenedAt } from '@/utils/format';
 
@@ -25,15 +26,26 @@ export function PlayerScreen({ onOpenSong }: { onOpenSong: (song: GuitarProSong)
   const openPickedFile = async () => {
     setBusy(true);
     setError(null);
+    let picked: RecentFile | null = null;
+    let rememberCompleted = false;
     try {
-      const picked = await pickPlayerFile();
+      picked = await pickPlayerFile();
       if (!picked) return;
       const song = await parsePlayerFile(picked.uri, picked.name);
       const next = await rememberFile({ ...picked, title: song.title, artist: song.artist });
+      releaseImportedPlayerFile(picked.uri);
+      rememberCompleted = true;
       setRecent(next);
       onOpenSong(song);
     } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : 'Could not open this file.');
+      if (picked && !rememberCompleted) {
+        try {
+          await cleanupImportedPlayerFile(picked.uri);
+        } catch {
+          // Cleanup must never replace the original user-facing import error.
+        }
+      }
+      setError(toUserFacingPlayerError(reason, 'Could not open this file.'));
     } finally {
       setBusy(false);
     }
@@ -49,7 +61,7 @@ export function PlayerScreen({ onOpenSong }: { onOpenSong: (song: GuitarProSong)
       setRecent(next);
       onOpenSong(song);
     } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : 'Could not reopen this file.');
+      setError(toUserFacingPlayerError(reason, 'Could not reopen this file.'));
     } finally {
       setLoadingId(null);
     }
@@ -69,16 +81,16 @@ export function PlayerScreen({ onOpenSong }: { onOpenSong: (song: GuitarProSong)
         <ActionButton variant="primary" loading={busy} onPress={() => void openPickedFile()}>Open file</ActionButton>
       </View>
       {error ? <View style={styles.error}><Text style={[type.section, styles.errorTitle]}>Player message</Text><Text style={type.caption}>{error}</Text></View> : null}
-      <View style={styles.recentHeader}><View><Text style={type.body}>Recent files</Text><Text style={type.caption}>Stored on this device</Text></View><Text style={type.mono}>{recent.length ? `${recent.length} ${recent.length === 1 ? 'file' : 'files'}` : 'Empty'}</Text></View>
+      <View style={styles.recentHeader}><View><Text style={type.body}>Recent files</Text><Text style={type.caption}>Stored on this device</Text></View><Text style={type.mono}>{recent.length ? recent.length + ' ' + (recent.length === 1 ? 'file' : 'files') : 'Empty'}</Text></View>
       {recent.length === 0 ? (
         <View style={styles.empty}><Text style={styles.emptyMark}>—</Text><Text style={type.body}>No files opened yet.</Text><Text style={type.caption}>Your local song files will appear here after the first import.</Text></View>
       ) : recent.map((file) => (
         <View key={file.id} style={styles.fileRow}>
-          <Pressable accessibilityRole="button" onPress={() => void openRecent(file)} hitSlop={2} style={({ pressed }) => [styles.fileMain, pressed && styles.pressed]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={'Open ' + (file.title || file.name)} accessibilityHint="Opens this recent file in the player" onPress={() => void openRecent(file)} hitSlop={2} style={({ pressed }) => [styles.fileMain, pressed && styles.pressed]}>
             <View style={styles.fileIcon}><Text style={type.mono}>{file.format}</Text></View>
             <View style={styles.fileCopy}><Text style={type.body} numberOfLines={1}>{file.title || file.name}</Text><Text style={type.caption} numberOfLines={1}>{file.artist || file.name} · {formatOpenedAt(file.openedAt)}</Text></View>
           </Pressable>
-          {loadingId === file.id ? <ActivityIndicator color={colors.accentBright} /> : <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${file.name} from recent files`} onPress={() => void removeRecent(file)} hitSlop={6} style={({ pressed }) => [styles.remove, pressed && styles.pressed]}><Text style={type.mono}>×</Text></Pressable>}
+          {loadingId === file.id ? <ActivityIndicator color={colors.accentBright} /> : <Pressable accessibilityRole="button" accessibilityLabel={'Remove ' + file.name + ' from recent files'} onPress={() => void removeRecent(file)} hitSlop={6} style={({ pressed }) => [styles.remove, pressed && styles.pressed]}><Text style={type.mono}>×</Text></Pressable>}
         </View>
       ))}
       <View style={styles.privacy}><Text style={type.body}>On this device</Text><Text style={type.caption}>Files, playback state and tuner preferences stay here. TabTensor does not upload audio or song files.</Text></View>

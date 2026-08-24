@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { GuitarProSong, PlaybackSnapshot } from '@/types';
+import { toUserFacingPlayerError } from '../playerError';
 import { createPlaybackEngine } from '../playback/NativeSynthPlaybackEngine';
 
 export function useGuitarProPlayer(song: GuitarProSong) {
@@ -13,13 +14,39 @@ export function useGuitarProPlayer(song: GuitarProSong) {
   const [loopEnabled, setLoopEnabled] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = engine.subscribe(setSnapshot);
-    void engine.load(song);
+    let active = true;
+    const unsubscribe = engine.subscribe((nextSnapshot) => {
+      if (!active) return;
+      if (!nextSnapshot.error) {
+        setSnapshot(nextSnapshot);
+        return;
+      }
+      setSnapshot({
+        ...nextSnapshot,
+        error: toUserFacingPlayerError(nextSnapshot.error, 'Playback could not load this song. Try again.'),
+      });
+    });
+
+    void engine.load(song).catch((reason: unknown) => {
+      if (!active) return;
+      const detail = toUserFacingPlayerError(reason, 'The song could not be loaded.');
+      setSnapshot((current) => ({
+        ...current,
+        state: 'error',
+        duration: song.duration,
+        tracks: current.tracks.length ? current.tracks : song.tracks,
+        error: `Playback could not load this song: ${detail}`,
+      }));
+    });
+
     return () => {
+      active = false;
       unsubscribe();
-      void engine.dispose();
+      void engine.dispose().catch(() => {
+        // Cleanup failures must not become unhandled rejections after unmount.
+      });
     };
-  }, [song]);
+  }, [engine, song]);
 
   useEffect(() => {
     if (!loopEnabled || loopStart === null || loopEnd === null || snapshot.state !== 'playing') return;

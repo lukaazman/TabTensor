@@ -12,6 +12,21 @@ import { InstrumentDefinition, InstrumentId, TuningDefinition } from '@/types';
 import { allTunings, findTuning, INSTRUMENTS, instrumentForId, midiFromNoteName, noteNameForMidi } from '@/tuner/tunings';
 import { useTuner } from '@/tuner/hooks/useTuner';
 
+const INSTRUMENT_PHOTOS: Record<InstrumentId, ImageSourcePropType> = {
+  'acoustic-guitar': require('../../assets/instruments/acoustic-guitar.png'),
+  'electric-guitar': require('../../assets/instruments/electric-strat.png'),
+  'classical-guitar': require('../../assets/instruments/classical-guitar.png'),
+  'guitar-7': require('../../assets/instruments/acoustic-guitar.png'),
+  'guitar-8': require('../../assets/instruments/acoustic-guitar.png'),
+  ukulele: require('../../assets/instruments/ukulele.png'),
+  'bass-4': require('../../assets/instruments/bass.png'),
+  'bass-5': require('../../assets/instruments/bass.png'),
+  mandolin: require('../../assets/instruments/mandolin.png'),
+  violin: require('../../assets/instruments/violin.png'),
+  banjo: require('../../assets/instruments/banjo.png'),
+};
+
+
 export function TunerScreen() {
   useKeepAwake('tabtensor-tuner');
   const { width } = useWindowDimensions();
@@ -196,26 +211,13 @@ function InstrumentIllustration({ instrument, stringCount, compact }: { instrume
   const source = instrumentPhotoFor(instrument);
   return (
     <View style={[styles.instrumentIllustration, compact && styles.instrumentIllustrationCompact]} accessibilityLabel={instrument.name + ', ' + stringCount + ' strings, tuning machines photo'}>
-      <Image source={source} style={styles.instrumentPhoto} resizeMode="contain" />
+      <Image source={source} style={styles.instrumentPhoto} resizeMode="contain" resizeMethod="resize" fadeDuration={0} />
     </View>
   );
 }
 
 function instrumentPhotoFor(instrument: InstrumentDefinition): ImageSourcePropType {
-  const byId: Partial<Record<InstrumentId, ImageSourcePropType>> = {
-    'classical-guitar': require('../../assets/instruments/classical-guitar.png'),
-  };
-  if (byId[instrument.id]) return byId[instrument.id] as ImageSourcePropType;
-  const byBodyStyle: Record<InstrumentDefinition['bodyStyle'], ImageSourcePropType> = {
-    guitar: require('../../assets/instruments/acoustic-guitar.png'),
-    electric: require('../../assets/instruments/electric-strat.png'),
-    ukulele: require('../../assets/instruments/ukulele.png'),
-    bass: require('../../assets/instruments/bass.png'),
-    mandolin: require('../../assets/instruments/mandolin.png'),
-    violin: require('../../assets/instruments/violin.png'),
-    banjo: require('../../assets/instruments/banjo.png'),
-  };
-  return byBodyStyle[instrument.bodyStyle];
+  return INSTRUMENT_PHOTOS[instrument.id];
 }
 function InstrumentPicker({ visible, selectedId, onClose, onSelect }: { visible: boolean; selectedId: InstrumentId; onClose: () => void; onSelect: (instrument: InstrumentDefinition) => void }) {
   return (

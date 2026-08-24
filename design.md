@@ -81,7 +81,7 @@ The runtime uses the platform sans family for display and body roles, with a pla
 - App pages must not use decorative enrichment. Function and data carry the page.
 - Tuner: dominant live readout and string-selection grid.
 - Player: import action and local file ledger for Guitar Pro, MusicXML and MIDI.
-- Playback: transport first, score second, mixer last.
+- Playback: score first, compact transport second, progressive-disclosure secondary controls, mixer last.
 
 ## What pages MUST share
 
