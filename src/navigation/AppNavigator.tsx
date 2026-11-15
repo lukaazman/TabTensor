@@ -23,7 +23,23 @@ export function AppNavigator() {
   return (
     <View style={styles.root}>
       <View style={styles.content}>
-        {activeTab === 'tuner' ? <TunerScreen /> : activeTab === 'player' ? <PlayerScreen onOpenSong={(nextSong) => { setSong(nextSong); setActiveTab('player'); }} /> : <LibraryScreen onOpenSong={(nextSong) => { setSong(nextSong); setActiveTab('player'); }} />}
+        {activeTab === 'tuner' ? (
+          <TunerScreen />
+        ) : activeTab === 'player' ? (
+          <PlayerScreen
+            onOpenSong={(nextSong) => {
+              setSong(nextSong);
+              setActiveTab('player');
+            }}
+          />
+        ) : (
+          <LibraryScreen
+            onOpenSong={(nextSong) => {
+              setSong(nextSong);
+              setActiveTab('player');
+            }}
+          />
+        )}
       </View>
       <TabBar activeTab={activeTab} onChange={setActiveTab} />
     </View>
@@ -31,6 +47,6 @@ export function AppNavigator() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.black },
+  root: { flex: 1, backgroundColor: colors.ground },
   content: { flex: 1 },
 });

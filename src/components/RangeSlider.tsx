@@ -1,7 +1,6 @@
-/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import React, { useMemo, useState } from 'react';
 import { PanResponder, StyleSheet, Text, View } from 'react-native';
-import { colors, type } from '@/theme';
+import { colors, radius, type } from '@/theme';
 
 type Props = {
   value: number;
@@ -19,16 +18,25 @@ export function RangeSlider({ value, min = 0, max = 1, onChange, label, valueLab
     const next = min + Math.min(1, Math.max(0, x / width)) * (max - min);
     onChange(Number(next.toFixed(3)));
   };
-  const responder = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
-    onPanResponderGrant: (event) => updateFromX(event.nativeEvent.locationX),
-    onPanResponderMove: (event) => updateFromX(event.nativeEvent.locationX),
-  }), [max, min, onChange, width]);
+  const responder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: (event) => updateFromX(event.nativeEvent.locationX),
+        onPanResponderMove: (event) => updateFromX(event.nativeEvent.locationX),
+      }),
+    [max, min, onChange, width],
+  );
 
   return (
     <View style={styles.wrap}>
-      {label || valueLabel ? <View style={styles.meta}><Text style={type.caption}>{label}</Text><Text style={type.mono}>{valueLabel}</Text></View> : null}
+      {label || valueLabel ? (
+        <View style={styles.meta}>
+          <Text style={type.caption}>{label}</Text>
+          <Text style={type.meta}>{valueLabel}</Text>
+        </View>
+      ) : null}
       <View
         accessible
         accessibilityRole="adjustable"
@@ -58,7 +66,17 @@ const styles = StyleSheet.create({
   wrap: { gap: 7 },
   meta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   touchArea: { height: 44, justifyContent: 'center' },
-  track: { height: 5, borderRadius: 3, backgroundColor: colors.paperSoft, position: 'relative' },
-  fill: { height: 5, borderRadius: 3, backgroundColor: colors.accent },
-  thumb: { position: 'absolute', top: -7, width: 19, height: 19, marginLeft: -9.5, borderRadius: 10, backgroundColor: colors.ink, borderWidth: 3, borderColor: colors.accent },
+  track: { height: 5, borderRadius: radius.pill, backgroundColor: colors.raised, position: 'relative' },
+  fill: { height: 5, borderRadius: radius.pill, backgroundColor: colors.accent },
+  thumb: {
+    position: 'absolute',
+    top: -7,
+    width: 19,
+    height: 19,
+    marginLeft: -9.5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.ink,
+    borderWidth: 3,
+    borderColor: colors.accent,
+  },
 });

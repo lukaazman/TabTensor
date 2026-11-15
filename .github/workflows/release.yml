@@ -1,0 +1,73 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - run: npm ci
+      - run: npx expo prebuild --platform android --no-install
+      - name: Build APK
+        working-directory: android
+        run: ./gradlew --no-daemon assembleRelease
+      - run: cp android/app/build/outputs/apk/release/app-release.apk TabTensor.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: TabTensor.apk
+
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx expo prebuild --platform ios
+      - name: Build unsigned IPA
+        run: |
+          xcodebuild -workspace ios/TabTensor.xcworkspace -scheme TabTensor -configuration Release \
+            -sdk iphoneos -derivedDataPath build CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO build
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/TabTensor.app Payload/
+          zip -qr TabTensor.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios
+          path: TabTensor.ipa
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [android, ios]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: TabTensor ${{ github.ref_name }}
+          body: Android APK and unsigned iOS IPA.
+          files: |
+            TabTensor.apk
+            TabTensor.ipa

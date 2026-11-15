@@ -23,7 +23,9 @@ const openPickedFile = playerScreen.match(/const openPickedFile = async \(\) => 
 assert.match(openPickedFile, /const next = await rememberFile\([\s\S]*?releaseImportedPlayerFile\(picked\.uri\)/, 'ownership must release after remember succeeds');
 assert.match(openPickedFile, /if \(picked && !rememberCompleted\)[\s\S]*?cleanupImportedPlayerFile\(picked\.uri\)/, 'failure cleanup must remain available');
 
-assert.match(playerScreen, /accessibilityLabel=\{'Open ' \+ \(file\.title \|\| file\.name\)\}/);
-assert.match(playerScreen, /accessibilityHint="Opens this recent file in the player"/);
+const recentFiles = fs.readFileSync(path.join(root, 'src', 'components', 'RecentFiles.tsx'), 'utf8');
+assert.match(playerScreen, /<RecentFiles/, 'player must render the shared recent-file list');
+assert.match(recentFiles, /accessibilityLabel=\{`Open \$\{file\.title \|\| file\.name\}`\}/);
+assert.match(recentFiles, /accessibilityHint="Opens this recent file in the player"/);
 
 console.log('import ownership/accessibility static test passed: success release, failure cleanup, and recent-file semantics are protected');

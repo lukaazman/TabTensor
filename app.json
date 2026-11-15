@@ -14,7 +14,12 @@
       }
     },
     "android": {
-      "package": "com.tabtensor.app"
+      "package": "com.tabtensor.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "monochromeImage": "./assets/adaptive-icon-mono.png",
+        "backgroundColor": "#0E0F13"
+      }
     },
     "plugins": [
       [
@@ -26,10 +31,32 @@
             "android.permission.MODIFY_AUDIO_SETTINGS"
           ]
         }
+      ],
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/InstrumentSans-Regular.ttf",
+            "./assets/fonts/InstrumentSans-Medium.ttf",
+            "./assets/fonts/InstrumentSans-SemiBold.ttf"
+          ]
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#0E0F13"
+        }
       ]
     ],
     "web": {
-      "bundler": "metro"
-    }
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
+    },
+    "icon": "./assets/icon.png",
+    "backgroundColor": "#0E0F13"
   }
 }

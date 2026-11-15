@@ -1,4 +1,3 @@
-/* Hallmark · genre: modern-minimal · macrostructure: Workbench · design-system: design.md · designed-as-app */
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -15,17 +14,17 @@ import {
 } from 'react-native';
 import { ActionButton } from '@/components/ActionButton';
 import { AppHeader } from '@/components/AppHeader';
+import { RecentFiles } from '@/components/RecentFiles';
 import { ChordBoard } from '@/library/ChordBoard';
 import { ALL_CHORDS, ChordDefinition } from '@/library/chords';
 import { SCALE_CATALOG, SCALE_ROOTS, ScaleDefinition, ScaleGenre, scaleNotes } from '@/library/scales';
 import { ScreenShell } from '@/components/ScreenShell';
 import { SectionHeader } from '@/components/SectionHeader';
-import { colors, layout, type } from '@/theme';
+import { colors, font, pressed, radius, size, type } from '@/theme';
 import { GuitarProSong, RecentFile } from '@/types';
 import { forgetFile, loadRecentFiles, rememberFile } from '@/storage/recentFiles';
 import { isFileAccessible } from '@/player/fileHandling';
 import { parsePlayerFile } from '@/player/parser/PlayerParser';
-import { formatOpenedAt } from '@/utils/format';
 
 type LibrarySection = 'recent' | 'chords' | 'scales';
 
@@ -95,7 +94,7 @@ export function LibraryScreen({ onOpenSong }: { onOpenSong: (song: GuitarProSong
     chordListRef.current?.scrollToOffset({ offset: safeIndex * carouselWidth, animated: true });
   };
 
-  const selectedScale = selectedScaleId ? SCALE_CATALOG.find((scale) => scale.id === selectedScaleId) ?? null : null;
+  const selectedScale = selectedScaleId ? (SCALE_CATALOG.find((scale) => scale.id === selectedScaleId) ?? null) : null;
   const selectedScaleNotes = selectedScale ? scaleNotes(scaleRootIndex, selectedScale.intervals) : [];
 
   return (
@@ -133,9 +132,23 @@ export function LibraryScreen({ onOpenSong }: { onOpenSong: (song: GuitarProSong
               <Text style={type.caption}>Browse roots in chromatic order. Use the arrows or swipe between shapes.</Text>
             </View>
             <View style={styles.chordControls}>
-              <ActionButton variant="quiet" accessibilityLabel="Previous chord" disabled={chordIndex === 0} onPress={() => goToChord(chordIndex - 1)}>Previous</ActionButton>
-              <Text style={[type.mono, styles.indexReadout]}>{ALL_CHORDS[chordIndex]?.name ?? 'Chord'}</Text>
-              <ActionButton variant="quiet" accessibilityLabel="Next chord" disabled={chordIndex === ALL_CHORDS.length - 1} onPress={() => goToChord(chordIndex + 1)}>Next</ActionButton>
+              <ActionButton
+                variant="quiet"
+                accessibilityLabel="Previous chord"
+                disabled={chordIndex === 0}
+                onPress={() => goToChord(chordIndex - 1)}
+              >
+                Previous
+              </ActionButton>
+              <Text style={[type.meta, styles.indexReadout]}>{ALL_CHORDS[chordIndex]?.name ?? 'Chord'}</Text>
+              <ActionButton
+                variant="quiet"
+                accessibilityLabel="Next chord"
+                disabled={chordIndex === ALL_CHORDS.length - 1}
+                onPress={() => goToChord(chordIndex + 1)}
+              >
+                Next
+              </ActionButton>
             </View>
             <FlatList
               ref={chordListRef}
@@ -151,11 +164,14 @@ export function LibraryScreen({ onOpenSong }: { onOpenSong: (song: GuitarProSong
                 <View style={[styles.chordPage, { width: carouselWidth }]}>
                   <View style={styles.chordTitleBlock}>
                     <Text style={styles.chordName}>{item.name}</Text>
-                    <Text style={[type.mono, styles.chordQuality]}>{item.qualityId.replace(/-/g, ' ').toUpperCase()}</Text>
+                    <Text style={[type.caption, styles.chordQuality]}>{item.qualityId.replace(/-/g, ' ')}</Text>
                   </View>
                   <ChordBoard chord={item} />
                   <View style={styles.chordInfo}>
-                    <View style={styles.infoLine}><Text style={type.section}>FORMULA</Text><Text style={[type.mono, styles.infoValue]}>{item.formula}</Text></View>
+                    <View style={styles.infoLine}>
+                      <Text style={type.caption}>Formula</Text>
+                      <Text style={[type.mono, styles.infoValue]}>{item.formula}</Text>
+                    </View>
                     <Text style={type.caption}>{item.description}</Text>
                   </View>
                 </View>
@@ -165,7 +181,10 @@ export function LibraryScreen({ onOpenSong }: { onOpenSong: (song: GuitarProSong
                 setChordIndex(Math.max(0, Math.min(ALL_CHORDS.length - 1, next)));
               }}
               onScrollToIndexFailed={({ index }) => {
-                setTimeout(() => chordListRef.current?.scrollToOffset({ offset: index * carouselWidth, animated: true }), 60);
+                setTimeout(
+                  () => chordListRef.current?.scrollToOffset({ offset: index * carouselWidth, animated: true }),
+                  60,
+                );
               }}
             />
           </View>
@@ -195,10 +214,16 @@ export function LibraryScreen({ onOpenSong }: { onOpenSong: (song: GuitarProSong
                         key={scale.id}
                         accessibilityRole="button"
                         accessibilityState={{ expanded: selectedScaleId === scale.id }}
-                        onPress={() => { setSelectedScaleId(selectedScaleId === scale.id ? null : scale.id); setSelectedNoteIndex(null); }}
-                        style={({ pressed }) => [styles.scaleRow, selectedScaleId === scale.id && styles.scaleRowSelected, pressed && styles.pressed]}
+                        onPress={() => {
+                          setSelectedScaleId(selectedScaleId === scale.id ? null : scale.id);
+                          setSelectedNoteIndex(null);
+                        }}
+                        style={({ pressed }) => [
+                          styles.scaleRow,
+                          selectedScaleId === scale.id && styles.scaleRowSelected,
+                          pressed && styles.pressed,
+                        ]}
                       >
-                        <View style={[styles.scaleRowMarker, selectedScaleId === scale.id && styles.scaleRowMarkerSelected]} />
                         <View style={styles.scaleRowCopy}>
                           <Text style={type.body}>{scale.name}</Text>
                           <Text style={type.caption}>{scale.use}</Text>
@@ -216,94 +241,194 @@ export function LibraryScreen({ onOpenSong }: { onOpenSong: (song: GuitarProSong
                 rootIndex={scaleRootIndex}
                 notes={selectedScaleNotes}
                 selectedNoteIndex={selectedNoteIndex}
-                onRootChange={(index) => { setScaleRootIndex(index); setSelectedNoteIndex(null); }}
+                onRootChange={(index) => {
+                  setScaleRootIndex(index);
+                  setSelectedNoteIndex(null);
+                }}
                 onNoteSelect={setSelectedNoteIndex}
               />
             ) : (
-              <View style={styles.scalePrompt}><Text style={styles.emptyMark}>⌁</Text><Text style={type.body}>No scale selected</Text><Text style={type.caption}>Tap any scale above to open its player view.</Text></View>
+              <View style={styles.scalePrompt}>
+                <Text style={type.label}>No scale selected</Text>
+                <Text style={type.caption}>Tap a scale above to see its notes.</Text>
+              </View>
             )}
           </View>
         ) : null}
       </View>
 
-      {error ? <View style={styles.error}><Text style={[type.section, styles.errorTitle]}>LIBRARY MESSAGE</Text><Text style={type.caption}>{error}</Text></View> : null}
-      <View style={styles.privacy}><Text style={type.body}>On this device</Text><Text style={type.caption}>Recent file references stay here. Opening a file hands it to the same player used by the Player tab.</Text></View>
+      {error ? (
+        <View style={styles.error}>
+          <Text style={[type.section, styles.errorTitle]}>Library message</Text>
+          <Text style={type.caption}>{error}</Text>
+        </View>
+      ) : null}
+      <View style={styles.privacy}>
+        <Text style={type.label}>On this device</Text>
+        <Text style={type.caption}>
+          Recent file references stay here. Opening a file hands it to the same player used by the Player tab.
+        </Text>
+      </View>
     </ScreenShell>
   );
 }
 
-function CollectionSectionButton({ title, detail, expanded, onPress }: { title: string; detail: string; expanded: boolean; onPress: () => void }) {
+function CollectionSectionButton({
+  title,
+  detail,
+  expanded,
+  onPress,
+}: {
+  title: string;
+  detail: string;
+  expanded: boolean;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ expanded }}
       onPress={onPress}
-      style={({ pressed }) => [styles.collectionButton, expanded && styles.collectionButtonExpanded, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.collectionButton,
+        expanded && styles.collectionButtonExpanded,
+        pressed && styles.pressed,
+      ]}
     >
-      <View style={[styles.collectionMarker, expanded && styles.collectionMarkerExpanded]} />
-      <View style={styles.collectionCopy}><Text style={type.section}>{title.toUpperCase()}</Text><Text style={type.caption}>{detail}</Text></View>
-      <Text style={[styles.collectionChevron, expanded && styles.collectionChevronExpanded]}>{expanded ? '−' : '+'}</Text>
+      <View style={styles.collectionCopy}>
+        <Text style={type.section}>{title}</Text>
+        <Text style={type.caption}>{detail}</Text>
+      </View>
+      <Text style={[styles.collectionChevron, expanded && styles.collectionChevronExpanded]}>
+        {expanded ? '−' : '+'}
+      </Text>
     </Pressable>
   );
 }
 
-function RecentPanel({ recent, loading, loadingId, onOpen, onRemove }: { recent: RecentFile[]; loading: boolean; loadingId: string | null; onOpen: (file: RecentFile) => void; onRemove: (file: RecentFile) => void }) {
+function RecentPanel({
+  recent,
+  loading,
+  loadingId,
+  onOpen,
+  onRemove,
+}: {
+  recent: RecentFile[];
+  loading: boolean;
+  loadingId: string | null;
+  onOpen: (file: RecentFile) => void;
+  onRemove: (file: RecentFile) => void;
+}) {
   if (loading) {
-    return <View style={styles.loadingPanel}><ActivityIndicator color={colors.accentBright} /><Text style={type.caption}>Reading local player history…</Text></View>;
-  }
-  if (recent.length === 0) {
-    return <View style={styles.emptyPanel}><Text style={styles.emptyMark}>—</Text><Text style={type.body}>No files opened yet.</Text><Text style={type.caption}>Import or open a song in Player and it will appear here too.</Text></View>;
+    return (
+      <View style={styles.loadingPanel}>
+        <ActivityIndicator color={colors.accent} />
+        <Text style={type.caption}>Reading local player history…</Text>
+      </View>
+    );
   }
   return (
-    <View style={styles.recentPanel}>
-      <View style={styles.panelIntro}><Text style={type.body}>Open from your player history</Text><Text style={type.caption}>Tap a file to return directly to the player. The source remains local to this device.</Text></View>
-      {recent.map((file) => (
-        <View key={file.id} style={styles.fileRow}>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Open ${file.title || file.name} in player`} onPress={() => onOpen(file)} style={({ pressed }) => [styles.fileMain, pressed && styles.pressed]}>
-            <View style={styles.fileIcon}><Text style={[type.mono, styles.fileIconText]}>{file.format.toUpperCase()}</Text></View>
-            <View style={styles.fileCopy}><Text style={type.body} numberOfLines={1}>{file.title || file.name}</Text><Text style={type.caption} numberOfLines={1}>{file.artist || file.name} · {formatOpenedAt(file.openedAt)}</Text></View>
-          </Pressable>
-          {loadingId === file.id ? <ActivityIndicator color={colors.accentBright} /> : <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${file.name} from recent files`} onPress={() => onRemove(file)} hitSlop={6} style={({ pressed }) => [styles.removeButton, pressed && styles.pressed]}><Text style={type.mono}>×</Text></Pressable>}
-        </View>
-      ))}
+    <View style={styles.collectionPanel}>
+      <RecentFiles
+        recent={recent}
+        loadingId={loadingId}
+        emptyHint="Open a song in Player and it appears here too."
+        onOpen={onOpen}
+        onRemove={onRemove}
+      />
     </View>
   );
 }
 
-function ScaleViewer({ scale, rootIndex, notes, selectedNoteIndex, onRootChange, onNoteSelect }: { scale: ScaleDefinition; rootIndex: number; notes: string[]; selectedNoteIndex: number | null; onRootChange: (index: number) => void; onNoteSelect: (index: number) => void }) {
+function ScaleViewer({
+  scale,
+  rootIndex,
+  notes,
+  selectedNoteIndex,
+  onRootChange,
+  onNoteSelect,
+}: {
+  scale: ScaleDefinition;
+  rootIndex: number;
+  notes: string[];
+  selectedNoteIndex: number | null;
+  onRootChange: (index: number) => void;
+  onNoteSelect: (index: number) => void;
+}) {
   const activeIndex = selectedNoteIndex ?? 0;
   return (
     <View style={styles.scaleViewer}>
       <View style={styles.scaleViewerHeader}>
-        <View><Text style={styles.scaleTitle}>{SCALE_ROOTS[rootIndex]} {scale.name}</Text><Text style={[type.mono, styles.scaleGenre]}>{prettyGenre(scale.genre)}</Text></View>
-        <View style={styles.scaleRootBadge}><Text style={styles.scaleRootBadgeText}>{SCALE_ROOTS[rootIndex]}</Text></View>
+        <View>
+          <Text style={styles.scaleTitle}>
+            {SCALE_ROOTS[rootIndex]} {scale.name}
+          </Text>
+          <Text style={[type.caption, styles.scaleGenre]}>{prettyGenre(scale.genre)}</Text>
+        </View>
       </View>
       <Text style={[type.caption, styles.scaleDescription]}>{scale.description}</Text>
       <Text style={type.section}>Root note</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.rootChips}>
         {SCALE_ROOTS.map((root, index) => (
-          <Pressable key={root} accessibilityRole="button" accessibilityState={{ selected: rootIndex === index }} onPress={() => onRootChange(index)} style={({ pressed }) => [styles.rootChip, rootIndex === index && styles.rootChipSelected, pressed && styles.pressed]}>
-            <Text style={[type.mono, styles.rootChipText, rootIndex === index && styles.rootChipTextSelected]}>{root}</Text>
+          <Pressable
+            key={root}
+            accessibilityRole="button"
+            accessibilityState={{ selected: rootIndex === index }}
+            onPress={() => onRootChange(index)}
+            style={({ pressed }) => [
+              styles.rootChip,
+              rootIndex === index && styles.rootChipSelected,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={[type.meta, styles.rootChipText, rootIndex === index && styles.rootChipTextSelected]}>
+              {root}
+            </Text>
           </Pressable>
         ))}
       </ScrollView>
       <View style={styles.scalePlayerBar}>
-        <View><Text style={type.section}>Notes</Text><Text style={type.caption}>Tap a note to spotlight its degree.</Text></View>
-        <Text style={[type.mono, styles.scalePosition]}>Note {activeIndex + 1} of {notes.length}</Text>
+        <View>
+          <Text style={type.section}>Notes</Text>
+          <Text style={type.caption}>Tap a note to spotlight its degree.</Text>
+        </View>
+        <Text style={[type.meta, styles.scalePosition]}>
+          Note {activeIndex + 1} of {notes.length}
+        </Text>
       </View>
       <View style={styles.noteTrack}>
         <View style={styles.noteTrackLine} />
         {notes.map((note, index) => (
-          <Pressable key={`${note}-${index}`} accessibilityRole="button" accessibilityLabel={`${note}, degree ${scale.degrees[index]}`} onPress={() => onNoteSelect(index)} style={({ pressed }) => [styles.noteCard, selectedNoteIndex === index && styles.noteCardSelected, pressed && styles.pressed]}>
-            <Text style={[type.mono, styles.noteDegree, selectedNoteIndex === index && styles.noteDegreeSelected]}>{scale.degrees[index]}</Text>
+          <Pressable
+            key={`${note}-${index}`}
+            accessibilityRole="button"
+            accessibilityLabel={`${note}, degree ${scale.degrees[index]}`}
+            onPress={() => onNoteSelect(index)}
+            style={({ pressed }) => [
+              styles.noteCard,
+              selectedNoteIndex === index && styles.noteCardSelected,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={[type.meta, styles.noteDegree, selectedNoteIndex === index && styles.noteDegreeSelected]}>
+              {scale.degrees[index]}
+            </Text>
             <Text style={[styles.noteName, selectedNoteIndex === index && styles.noteNameSelected]}>{note}</Text>
-            <Text style={[type.caption, styles.noteStep]}>{index === 0 ? 'ROOT' : `+${scale.intervals[index] - scale.intervals[index - 1]} ST`}</Text>
+            <Text style={[type.caption, styles.noteStep]}>
+              {index === 0 ? 'Root' : `+${scale.intervals[index] - scale.intervals[index - 1]} st`}
+            </Text>
           </Pressable>
         ))}
       </View>
       <View style={styles.scaleMeta}>
-        <View style={styles.metaBlock}><Text style={type.section}>FORMULA</Text><Text style={[type.mono, styles.metaValue]}>{scale.formula}</Text></View>
-        <View style={styles.metaBlock}><Text style={type.section}>BEST IN</Text><Text style={[type.caption, styles.metaValue]}>{scale.use}</Text></View>
+        <View style={styles.metaBlock}>
+          <Text style={type.caption}>Formula</Text>
+          <Text style={[type.mono, styles.metaValue]}>{scale.formula}</Text>
+        </View>
+        <View style={styles.metaBlock}>
+          <Text style={type.caption}>Best in</Text>
+          <Text style={[type.caption, styles.metaValue]}>{scale.use}</Text>
+        </View>
       </View>
     </View>
   );
@@ -316,72 +441,121 @@ function prettyGenre(value: string): string {
 const styles = StyleSheet.create({
   screenContent: { paddingBottom: 42 },
   sectionStack: { gap: 6 },
-  collectionButton: { minHeight: 68, paddingVertical: 10, paddingHorizontal: 4, borderBottomWidth: 1, borderColor: colors.rule, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  collectionButtonExpanded: { borderBottomColor: colors.accent },
-  collectionMarker: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.ruleStrong },
-  collectionMarkerExpanded: { backgroundColor: colors.accent },
+  collectionButton: {
+    minHeight: 68,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderColor: colors.rule,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  collectionButtonExpanded: { borderBottomColor: colors.control },
   collectionCopy: { flex: 1, minWidth: 0, gap: 3 },
-  collectionChevron: { color: colors.inkMuted, fontSize: 25, lineHeight: 28, paddingHorizontal: 6 },
-  collectionChevronExpanded: { color: colors.accentBright },
+  collectionChevron: { color: colors.muted, fontSize: size.title, lineHeight: 32, paddingHorizontal: 6 },
+  collectionChevronExpanded: { color: colors.ink },
   collectionPanel: { paddingTop: 10, paddingBottom: 10, gap: 14 },
   panelIntro: { gap: 5 },
-  loadingPanel: { minHeight: 126, alignItems: 'center', justifyContent: 'center', gap: 10, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.rule },
-  emptyPanel: { minHeight: 160, padding: 20, alignItems: 'center', justifyContent: 'center', gap: 7, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.rule },
-  emptyMark: { color: colors.neutral, fontSize: 32 },
-  recentPanel: { paddingVertical: 8 },
-  fileRow: { minHeight: 76, borderTopWidth: 1, borderColor: colors.rule, flexDirection: 'row', alignItems: 'center', gap: 9 },
-  fileMain: { flex: 1, minHeight: 76, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  fileIcon: { width: 54, height: 38, borderWidth: 1, borderColor: colors.ruleStrong, borderRadius: layout.radiusControl, backgroundColor: colors.paper, alignItems: 'center', justifyContent: 'center' },
-  fileIconText: { color: colors.accentBright, fontSize: 8, letterSpacing: 0.2 },
-  fileCopy: { flex: 1, minWidth: 0, gap: 3 },
-  removeButton: { width: 44, height: 44, borderRadius: layout.radiusControl, alignItems: 'center', justifyContent: 'center' },
+  loadingPanel: {
+    minHeight: 126,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.rule,
+  },
   chordList: { height: 600, flexGrow: 0 },
   chordControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  indexReadout: { color: colors.accentBright, fontSize: 10 },
+  indexReadout: { color: colors.ink, fontSize: size.meta },
   chordPage: { alignItems: 'stretch', gap: 12 },
   chordTitleBlock: { alignItems: 'center', paddingVertical: 4, gap: 2 },
-  chordName: { color: colors.ink, fontSize: 34, lineHeight: 38, fontWeight: '800', letterSpacing: -1 },
-  chordQuality: { color: colors.accentBright, fontSize: 9, letterSpacing: 1.2 },
+  chordName: { color: colors.ink, fontSize: size.display, lineHeight: 36, fontFamily: font.semibold },
+  chordQuality: { textTransform: 'capitalize' },
   chordInfo: { paddingTop: 12, borderTopWidth: 1, borderColor: colors.rule, gap: 8 },
   infoLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
-  infoValue: { color: colors.ink, fontSize: 10 },
+  infoValue: { color: colors.ink, fontSize: size.meta },
   scaleGroups: { gap: 18 },
   scaleGroup: { gap: 7 },
-  scaleRow: { minHeight: 62, paddingHorizontal: 4, borderTopWidth: 1, borderColor: colors.rule, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  scaleRowSelected: { backgroundColor: colors.paperRaised, borderTopColor: colors.accent },
-  scaleRowMarker: { width: 7, height: 7, borderRadius: 2, backgroundColor: colors.ruleStrong },
-  scaleRowMarkerSelected: { backgroundColor: colors.accentBright },
+  scaleRow: {
+    minHeight: 62,
+    paddingHorizontal: 4,
+    borderTopWidth: 1,
+    borderColor: colors.rule,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  scaleRowSelected: { backgroundColor: colors.surface },
   scaleRowCopy: { flex: 1, minWidth: 0, gap: 2 },
-  rowChevron: { width: 24, color: colors.accentBright, fontSize: 22, textAlign: 'center' },
-  scalePrompt: { minHeight: 142, alignItems: 'center', justifyContent: 'center', gap: 7, borderWidth: 1, borderColor: colors.rule, borderRadius: layout.radiusControl, backgroundColor: colors.paper },
-  scaleViewer: { marginTop: 2, padding: 14, borderWidth: 1, borderColor: colors.ruleStrong, borderRadius: layout.radiusCard, backgroundColor: colors.paperRaised, gap: 12 },
+  rowChevron: { width: 24, color: colors.faint, fontSize: size.title, textAlign: 'center' },
+  scalePrompt: { padding: 20, gap: 4, borderRadius: radius.card, backgroundColor: colors.surface },
+  scaleViewer: { marginTop: 2, padding: 16, borderRadius: radius.card, backgroundColor: colors.surface, gap: 12 },
   scaleViewerHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  scaleTitle: { color: colors.ink, fontSize: 23, lineHeight: 28, fontWeight: '800' },
-  scaleGenre: { color: colors.accentBright, fontSize: 9, marginTop: 3 },
-  scaleRootBadge: { width: 48, height: 48, borderRadius: 24, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  scaleRootBadgeText: { color: colors.accentInk, fontSize: 18, fontWeight: '800' },
-  scaleDescription: { color: colors.inkMuted },
+  scaleTitle: { color: colors.ink, fontSize: size.title, lineHeight: 32, fontFamily: font.semibold },
+  scaleGenre: { marginTop: 2 },
+  scaleDescription: { color: colors.muted },
   rootChips: { gap: 7, paddingTop: 8, paddingBottom: 2 },
-  rootChip: { minWidth: 44, height: 44, paddingHorizontal: 10, borderRadius: layout.radiusControl, borderWidth: 1, borderColor: colors.ruleStrong, backgroundColor: colors.paperRaised, alignItems: 'center', justifyContent: 'center' },
-  rootChipSelected: { borderColor: colors.accentBright, backgroundColor: colors.accent },
-  rootChipText: { color: colors.inkMuted, fontSize: 11 },
-  rootChipTextSelected: { color: colors.accentInk },
-  scalePlayerBar: { minHeight: 54, paddingVertical: 9, borderTopWidth: 1, borderBottomWidth: 1, borderColor: colors.rule, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  scalePosition: { color: colors.accentBright },
-  noteTrack: { minHeight: 94, position: 'relative', flexDirection: 'row', alignItems: 'stretch', gap: 5, paddingTop: 9 },
-  noteTrackLine: { position: 'absolute', top: 17, left: 0, right: 0, height: 1, backgroundColor: colors.ruleStrong },
-  noteCard: { flex: 1, minWidth: 0, minHeight: 82, paddingVertical: 11, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: colors.ruleStrong, borderRadius: layout.radiusControl, backgroundColor: colors.paper },
-  noteCardSelected: { borderColor: colors.accentBright, backgroundColor: colors.paperRaised, transform: [{ translateY: -4 }] },
-  noteDegree: { color: colors.muted, fontSize: 8 },
-  noteDegreeSelected: { color: colors.accentBright },
-  noteName: { color: colors.ink, fontSize: 16, fontWeight: '800' },
-  noteNameSelected: { color: colors.accentBright },
-  noteStep: { fontSize: 8, color: colors.neutral },
+  rootChip: {
+    minWidth: 44,
+    height: 44,
+    paddingHorizontal: 10,
+    borderRadius: radius.control,
+    borderWidth: 1,
+    borderColor: colors.control,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rootChipSelected: { borderColor: colors.accent, backgroundColor: colors.accent },
+  rootChipText: { color: colors.muted, fontSize: size.meta },
+  rootChipTextSelected: { color: colors.onAccent },
+  scalePlayerBar: {
+    minHeight: 54,
+    paddingVertical: 9,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.rule,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  scalePosition: { color: colors.accent },
+  noteTrack: {
+    minHeight: 94,
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 5,
+    paddingTop: 9,
+  },
+  noteTrackLine: { position: 'absolute', top: 17, left: 0, right: 0, height: 1, backgroundColor: colors.control },
+  noteCard: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 82,
+    paddingVertical: 11,
+    paddingHorizontal: 3,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: colors.control,
+    borderRadius: radius.control,
+    backgroundColor: colors.ground,
+  },
+  noteCardSelected: { borderColor: colors.accent, backgroundColor: colors.surface, transform: [{ translateY: -4 }] },
+  noteDegree: { color: colors.faint, fontSize: size.meta },
+  noteDegreeSelected: { color: colors.accent },
+  noteName: { color: colors.ink, fontSize: size.body, fontFamily: font.semibold },
+  noteNameSelected: { color: colors.accent },
+  noteStep: { fontSize: size.meta, color: colors.faint },
   scaleMeta: { gap: 9, paddingTop: 4 },
   metaBlock: { gap: 5 },
-  metaValue: { color: colors.ink, fontSize: 10 },
-  error: { marginTop: 16, padding: 15, borderWidth: 1, borderColor: colors.accent, borderRadius: layout.radiusCard, backgroundColor: colors.accentWash, gap: 8 },
-  errorTitle: { color: colors.accentBright },
+  metaValue: { color: colors.ink, fontSize: size.meta },
+  error: { marginTop: 16, padding: 16, borderRadius: radius.card, backgroundColor: colors.accentTint, gap: 8 },
+  errorTitle: { color: colors.accent },
   privacy: { marginTop: 28, paddingTop: 18, borderTopWidth: 1, borderColor: colors.rule, gap: 8 },
-  pressed: { opacity: 0.78, transform: [{ scale: 0.98 }] },
+  pressed,
 });

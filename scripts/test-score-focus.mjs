@@ -10,8 +10,9 @@ const followPanel = fs.readFileSync(path.join(root, 'src', 'player', 'components
 assert.ok(playback.includes('const [focusMode, setFocusMode] = useState(false);'), 'focus mode must be local UI state');
 assert.ok(playback.includes('setFocusMode((current) => !current)'), 'focus control must only toggle focus state');
 assert.ok(playback.includes("accessibilityLabel={focusMode ? 'Exit score focus mode' : 'Enter score focus mode'}"), 'focus control needs a clear accessible label');
-assert.ok(playback.includes("accessibilityHint={focusMode ? 'Returns to the full playback view' : 'Shows the score-focused playback view'}"), 'focus control needs an accessible hint');
-assert.ok(playback.includes('{!focusMode ? <View style={styles.formatChip}>'), 'format chip must be secondary in focus mode');
+const flat = playback.replace(/\s+/g, ' ');
+assert.ok(flat.includes("accessibilityHint={ focusMode ? 'Returns to the full playback view' : 'Shows the score-focused playback view' }") || flat.includes("accessibilityHint={focusMode ? 'Returns to the full playback view' : 'Shows the score-focused playback view'}"), 'focus control needs an accessible hint');
+assert.match(flat, /\{!focusMode \? \(? ?<View style=\{styles\.formatChip\}>/, 'format chip must be secondary in focus mode');
 assert.ok(playback.includes('{!focusMode ? ('), 'secondary sections must have an explicit focus branch');
 assert.ok(playback.includes('showSettings={!focusMode}'), 'Follow Tab practice settings must be hidden in focus mode');
 assert.ok(playback.includes('<ScoreView'), 'score must remain in focus mode');
